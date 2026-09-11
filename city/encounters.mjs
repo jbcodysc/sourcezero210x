@@ -1,5 +1,6 @@
 import {rollHealth} from '../lab/battle-rules.mjs';
 import {SANDWICH_HEAL,VEST_DEFENSE} from './progress.mjs';
+import {FAIRMONT_ENEMIES} from '../fairmont/enemies.mjs';
 export {rollHealth};
 export const MISS_RATE=.05,SILLY_RATE=.15,HELP_RATE=.05,ENEMY_DAMAGE_MULTIPLIER=1.3,MAX_ACTIVE_ENEMIES=3;
 export const ENEMIES={
@@ -15,7 +16,7 @@ export const ENEMIES={
  waterGuard:{name:'Cenexis Facility Guard',hp:198,attack:44,charge:65,xp:70,credits:45,portrait:'water-enemies',frame:'water-3',kind:'human',opening:'“Company orders. Turn around.”'},
  drainBot:{name:'Drain Scourer',hp:175,attack:41,charge:62,xp:60,credits:35,portrait:'water-enemies',frame:'water-4',kind:'robot',opening:'BLOCKAGE IDENTIFIED. APPLYING EXCESSIVE FORCE.'},
  regulator:{name:'DELUGE · Water Regulator',hp:650,attack:46,charge:70,xp:300,credits:180,portrait:'water-enemies',frame:'water-5',kind:'robot',boss:true,noHelp:true,opening:'CENEXIS REMOTE OVERRIDE ACTIVE. DISCHARGE LIMITS DISABLED.'}
-};
+ ,...FAIRMONT_ENEMIES};
 const helperFor={waterScrubber:'pipeRat',pipeBot:'waterScrubber',pipeRat:'pipeRat',waterGuard:'waterGuard',drainBot:'pipeBot',courier:'cleaner',volunteer:'volunteer',contractor:'volunteer',cleaner:'cleaner',loader:'cleaner',bastion:'loader'};
 const antics={
  animal:['sneezes at a droplet and looks offended.','tries to intimidate its own tail.','carefully rearranges a damp cracker.','forgets the argument and washes one ear.'],
@@ -27,8 +28,9 @@ export const livingEnemies=b=>b.enemies.filter(e=>e.hp>0);
 export function targetEnemy(b){return b.enemies.find(e=>e.uid===b.targetUid&&e.hp>0)||livingEnemies(b)[0]||b.enemies.at(-1);}
 export function selectTarget(b,uid){if(b.phase!=='command'||!b.enemies.some(e=>e.uid===uid&&e.hp>0))return false;b.targetUid=uid;return true;}
 export function encounterRewards(b){return b.enemies.filter(e=>e.hp<=0).reduce((r,e)=>({xp:r.xp+e.stats.xp,credits:r.credits+e.stats.credits}),{xp:0,credits:0});}
-export function createEncounter(id,progress){
+export function createEncounter(id,progress,group=null){
  const foe=makeFoe(id,0),enemy=foe.stats,b={phase:'command',turn:1,hp:progress.hp,targetHp:progress.hp,maxHp:progress.maxHp,snacks:progress.snacks,guarding:false,lastAction:null,enemies:[foe],enemyQueue:[],targetUid:0,nextUid:1,enemy,id,heroAttack:31+(progress.level-1)*3+progress.upgrade*6,defense:(progress.level-1)*2+(progress.armor==='insulated-vest'?VEST_DEFENSE:0),message:enemy.opening.replace('subject: Alex.','subject: '+(progress.name||'Alex')+'.')};
+ if(group?.length){b.enemies=group.slice(0,MAX_ACTIVE_ENEMIES).map((kind,i)=>makeFoe(kind,i));b.nextUid=b.enemies.length;b.enemy=b.enemies[0].stats;}
  // The selected foe retains the existing HUD/test-facing health interface.
  for(const [key,field]of [['enemyHp','hp'],['enemyMaxHp','maxHp'],['charged','charged']])Object.defineProperty(b,key,{get:()=>targetEnemy(b)[field],set:v=>{targetEnemy(b)[field]=v;}});
  return b;
@@ -57,14 +59,14 @@ export function enemyAction(b,rng=Math.random){
  if(!foe.charged&&roll<SILLY_RATE){result.type='silly';b.message=name+' '+antics[foe.stats.kind][(foe.turn-1)%4];}
  else if(!foe.charged&&!foe.stats.noHelp&&roll<SILLY_RATE+HELP_RATE){
   result.type='help';
-  if(livingEnemies(b).length<MAX_ACTIVE_ENEMIES){const helper=makeFoe(helperFor[foe.id]||'volunteer',b.nextUid++);b.enemies.push(helper);result.joined=helper.uid;b.message=name+' calls for help. '+helper.stats.name+' joins the fight!';}
+  if(livingEnemies(b).length<MAX_ACTIVE_ENEMIES){const helper=makeFoe(foe.stats.helper||helperFor[foe.id]||'volunteer',b.nextUid++);b.enemies.push(helper);result.joined=helper.uid;b.message=name+' calls for help. '+helper.stats.name+' joins the fight!';}
   else b.message=name+' calls for help, but there is no room for anyone else!';
  }else if(!foe.charged&&foe.turn%3===0){
-  result.type='charge';foe.charged=true;b.message=name+': '+(foe.id==='regulator'?'Its electric coils charge above a trembling column of water.':foe.stats.kind==='human'?'They plant their feet and draw back their arm.':foe.stats.kind==='animal'?'It crouches low, preparing to leap.':'Its capacitors begin charging with a rising electrical whine.');
+  result.type='charge';foe.charged=true;b.message=name+': '+(foe.stats.chargeText|| (foe.id==='regulator'?'Its electric coils charge above a trembling column of water.':foe.stats.kind==='human'?'They plant their feet and draw back their arm.':foe.stats.kind==='animal'?'It crouches low, preparing to leap.':'Its capacitors begin charging with a rising electrical whine.'));
  }else{
   const charged=foe.charged;foe.charged=false;
   if(rng()<MISS_RATE){result.type='miss';b.message=name+' '+(charged?'releases its big attack too wide. Miss!':'swings past you. Miss!');}
-  else{let damage=Math.max(4,(charged?foe.stats.charge:foe.stats.attack+(foe.turn%2===0?3:0))-b.defense);if(b.guarding)damage=Math.ceil(damage*.3);damage=Math.round(damage*ENEMY_DAMAGE_MULTIPLIER);result.damage=damage;b.targetHp=Math.max(0,b.targetHp-damage);b.message=name+': '+(foe.id==='regulator'?(charged?'An electrical outburst erupts through the spray!':foe.turn%2===0?'It tears a pipe loose and hurls it at you!':'A pressurized water blast knocks you back!'):foe.stats.kind==='human'?(charged?'A full-body shove!':'A fist catches your shoulder.'):foe.stats.kind==='animal'?(charged?'It launches itself at your shoulder!':'Sharp teeth catch your sleeve.'):(charged?'A charged restraint pulse tears through the air!':'A plated arm slams into you.'))+' '+damage+' damage.';}
+  else{let damage=Math.max(4,(charged?foe.stats.charge:foe.stats.attack+(foe.turn%2===0?3:0))-b.defense);if(b.guarding)damage=Math.ceil(damage*.3);damage=Math.round(damage*ENEMY_DAMAGE_MULTIPLIER);result.damage=damage;b.targetHp=Math.max(0,b.targetHp-damage);b.message=name+': '+((charged?foe.stats.chargedText:foe.stats.attackText)|| (foe.id==='regulator'?(charged?'An electrical outburst erupts through the spray!':foe.turn%2===0?'It tears a pipe loose and hurls it at you!':'A pressurized water blast knocks you back!'):foe.stats.kind==='human'?(charged?'A full-body shove!':'A fist catches your shoulder.'):foe.stats.kind==='animal'?(charged?'It launches itself at your shoulder!':'Sharp teeth catch your sleeve.'):(charged?'A charged restraint pulse tears through the air!':'A plated arm slams into you.')))+' '+damage+' damage.';}
  }
  foe.turn++;if(!b.enemyQueue.length){b.turn++;b.guarding=false;b.phase='command';}
  return result;

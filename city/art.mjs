@@ -1,5 +1,6 @@
 import {chooseWalkFrame} from '../lab/world-rules.mjs';
 import {CITY_FRAMES} from './city-art-data.mjs';
+import {prepareCharacterSheets,createSheetActor,drawSheetActor} from './character-sheets.mjs';
 function frame(texture,name,x,y,w,h,trim=true){
  if(texture.has(name))return texture.get(name);
  const source=texture.getSourceImage();x=Math.round(x);y=Math.round(y);w=Math.round(w);h=Math.round(h);
@@ -7,6 +8,7 @@ function frame(texture,name,x,y,w,h,trim=true){
  return texture.add(name,0,x,y,w,h);
 }
 export function prepareArt(scene){
+ prepareCharacterSheets(scene);
  const city=scene.textures.get('city-atlas'),image=city.getSourceImage(),cw=image.width/6,ch=image.height/4;
  for(const [name,bounds]of Object.entries(CITY_FRAMES))frame(city,name,...bounds.map((v,i)=>v*(i%2?image.height/1024:image.width/1536)),false);
  for(const [col,name]of ['grass','asphalt','sidewalk','path','flowers','hedge'].entries()){
@@ -23,10 +25,11 @@ export function prepareArt(scene){
  for(let i=0;i<3;i++){const f=frame(town,'battle-'+i,i*ti.width/3,ti.height*806/1254,ti.width/3,ti.height*(1-806/1254));const name=['battle-human','battle-robot','battle-boss'][i];if(!scene.textures.exists(name))scene.textures.addImage(name,ti);const standalone=scene.textures.get(name);if(!standalone.has('portrait'))standalone.add('portrait',0,f.cutX,f.cutY,f.width,f.height);}
 }
 export function actor(scene,x,y,row=0,height=104,hero=false,labRole=null){
+ if(hero||labRole===1)return createSheetActor(scene,x,y,{kind:hero?'hero':'mira',outfit:hero?(scene.heroOutfit||'normal'):'lab',height});
  const lab=hero||row===4||labRole!==null,prefix=lab?'lab-'+(hero?0:labRole??3):'town-'+row,key=lab?'lab-characters':'town-characters';
  const f=scene.textures.get(key).get(prefix+'-0'),scale=height/f.height;
  const sprite=scene.add.sprite(x,y,key,prefix+'-0').setOrigin(.5,1).setScale(scale).setDepth(y);
  const shadow=scene.add.ellipse(x,y-2,40,11,0x172b29,.25).setDepth(y-.2);
  return {x,y,row,prefix,key,sprite,shadow,dir:'down',elapsed:0,walking:false,scale};
 }
-export function drawActor(a,delta){a.elapsed+=delta;if(!a.staticFrame)a.sprite.setFrame(a.prefix+'-'+chooseWalkFrame(a.dir,a.walking,a.elapsed));a.sprite.setFlipX(a.dir==='left').setPosition(a.x,a.y).setDepth(a.y);a.shadow.setPosition(a.x,a.y-2).setDepth(a.y-.2);}
+export function drawActor(a,delta){if(a.sheetCharacter)return drawSheetActor(a,delta);a.elapsed+=delta;if(!a.staticFrame)a.sprite.setFrame(a.prefix+'-'+chooseWalkFrame(a.dir,a.walking,a.elapsed));a.sprite.setFlipX(a.dir==='left').setPosition(a.x,a.y).setDepth(a.y);a.shadow.setPosition(a.x,a.y-2).setDepth(a.y-.2);}
