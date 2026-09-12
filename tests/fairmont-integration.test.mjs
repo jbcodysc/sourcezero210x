@@ -10,20 +10,23 @@ function harness(progress=createChapterProgress(2)){
  class Base{
   init(){this.cutscene=null;this.arrival=false;this.transitioning=false;this.dialog=null;this.locked=false;}
   closeMenu(){this.menu=null;this.locked=false;}
+  advanceDialogue(){const d=this.dialog;if(++d.index<d.messages.length)return;this.dialog=null;this.locked=false;d.complete?.();}
  }
  const Scene=createFairmontScene({Base,getProgress:()=>progress,state,save(){events.push({type:'save'});},remember(scene){progress.location=scene.location;progress.position={x:scene.player.x,y:scene.player.y};},resetControls(){},finishText(){return false;},sound:{powerDown(){events.push({type:'power-down'});}}});
  const scene=new Scene();scene.init({location:progress.location,position:progress.position});scene.player={...progress.position,name:progress.name};scene.night=timeOfDay(progress)==='night';
+ scene.input={keyboard:{resetKeys(){}}};
  scene.travel=(location,position)=>events.push({type:'travel',location,position});scene.beginBattle=(id,spawnId,ids)=>events.push({type:'battle',id,spawnId,ids});
- scene.showDialogue=(lines,speaker,done)=>{events.push({type:'dialogue',lines});done?.();};scene.say=(text,speaker,done)=>{events.push({type:'say',text});done?.();};
+ scene.showDialogue=(lines,speaker,done)=>{events.push({type:'dialogue',lines});if(scene.argusDialogue)scene.dialog={messages:lines,index:0,complete:done};else done?.();};scene.say=(text,speaker,done)=>{events.push({type:'say',text});done?.();};
+ scene.playArgusEntrance=(pending,complete)=>{scene.argusEntrance={pending,complete};events.push({type:'entrance',pending});};
  scene.openFairmontService=id=>events.push({type:'service',id});scene.runBellwether=()=>events.push({type:'meanwhile'});scene.showChapterEnd=()=>events.push({type:'chapter-end'});
- return {scene,events,progress,load(location){scene.location=location;scene.map=mapFor(location);scene.hotel=hotelMapFor(location);scene.night=timeOfDay(progress)==='night';scene.player={...(scene.map||scene.hotel)?.arrival||progress.position,name:progress.name};},interact(target){scene.nearest=()=>target;scene.interact();},event(type){Object.assign(progress,transition(progress,type).state);}};
+ return {scene,events,progress,load(location){scene.location=location;scene.map=mapFor(location);scene.hotel=hotelMapFor(location);scene.night=timeOfDay(progress)==='night';scene.player={...(scene.map||scene.hotel)?.arrival||progress.position,name:progress.name};},interact(target){scene.nearest=()=>target;scene.interact();},event(type){Object.assign(progress,transition(progress,type).state);},finishEntrance(){scene.argusEntrance.complete({name:'A.R.G.U.S.',x:850,y:485});},finishDialogue(){while(scene.dialog)scene.advanceDialogue();}};
 }
 const storyOrder=['module-reminder','radio-bargain','hotel-sleep','bellwether-finished','wrm-enter','karen-start','karen-defeated','cut-lines','hotel-sleep','decrypt-start','guard-heard','protester-finished','scan-finished','security-defeated','keycard','facility-enter'];
 const through=last=>{let p=createChapterProgress(2);for(const type of storyOrder.slice(0,storyOrder.indexOf(last)+1))p=transition(p,type).state;return p;};
 
 test('legacy saves with pending bosses move from old floor coordinates into the separate boss room',()=>{
  for(const [boss,event,base,before]of [['karen','karen-start',MARKET_FLOORS[2],'wrm-enter'],['argus','argus-start',FACILITY_ZONES[4],'facility-enter']]){
-  const h=harness(through(before));h.event(event);h.load(base);h.scene.resumeStory();
+  const h=harness(through(before));if(boss==='argus')h.progress.flags.CH2_ARGUS_PENDING=true;else h.event(event);h.load(base);h.scene.resumeStory();
   const room=base+'-room-5';assert.equal(h.events.find(e=>e.type==='travel')?.location,room);
   h.events.length=0;h.load(room);h.scene.resumeStory();assert.equal(h.events.find(e=>e.type==='battle')?.id,boss);
  }
@@ -64,9 +67,62 @@ test('real boss interactions require a separate breaker action and release the f
  const facility=harness(through('facility-enter'));facility.load(dungeonRoomId(FACILITY_ZONES[4],5));const room=facility.scene.map;
  facility.interact({kind:'room-door',...room.elevator});assert.equal(facility.events.some(e=>e.type==='travel'),false);
  facility.interact({kind:'argus'});assert.equal(facility.events.some(e=>e.type==='battle'),false);
- facility.progress.flags.CH2_CORE_SHUTTERS=true;facility.interact({kind:'argus'});assert.equal(facility.events.findLast(e=>e.type==='battle').id,'argus');
+ facility.progress.flags.CH2_CORE_SHUTTERS=true;facility.interact({kind:'argus'});assert.equal(facility.events.some(e=>e.type==='battle'),false);facility.finishEntrance();facility.finishDialogue();assert.equal(facility.events.findLast(e=>e.type==='battle').id,'argus');
  finishFairmontBattle(facility.progress,{id:'argus'});facility.interact({kind:'room-door',...room.elevator});assert.equal(facility.events.findLast(e=>e.type==='travel').location,FACILITY_ZONES[0]);
  facility.interact({kind:'argus'});assert.equal(facility.progress.flags.CH2_COMPLETE,true);assert.ok(facility.events.some(e=>e.type==='chapter-end'));
+});
+
+test('the real final terminal locks controls, waits for the entrance, then retains dialogue before battle',()=>{
+ const h=harness(through('facility-enter'));h.load(dungeonRoomId(FACILITY_ZONES[4],5));h.progress.flags.CH2_CORE_SHUTTERS=true;
+ h.interact({kind:'argus'});
+ assert.equal(h.progress.flags.CH2_ARGUS_ENTRANCE_STARTED,true);
+ assert.equal(h.progress.flags.CH2_ARGUS_ENCOUNTER_ACTIVE,true);
+ assert.equal(h.scene.locked,true);assert.equal(h.scene.arrival,true);
+ assert.equal(h.events.filter(e=>e.type==='entrance').length,1);
+ assert.equal(h.events.some(e=>e.type==='battle'||e.type==='dialogue'),false);
+ h.interact({kind:'argus'});h.scene.runArgusEncounter();
+ assert.equal(h.events.filter(e=>e.type==='entrance').length,1,'repeated input cannot create another entrance');
+ h.finishEntrance();
+ assert.equal(h.progress.flags.CH2_ARGUS_ENTRANCE_SEEN,true);
+ assert.equal(h.scene.arrival,false,'dialogue input unlocks after the flight');
+ assert.equal(h.scene.locked,true,'movement remains locked for dialogue');
+ assert.match(h.events.findLast(e=>e.type==='dialogue').lines[0].text,/Autonomous Response, Guidance & Unified Security/);
+ assert.equal(h.events.some(e=>e.type==='battle'),false);
+ h.scene.advanceDialogue();
+ assert.equal(h.progress.chapter2ArgusDialogueStep,1,'the next dialogue line is persisted');
+ assert.equal(h.events.some(e=>e.type==='battle'),false);
+ h.finishDialogue();
+ assert.equal(h.events.filter(e=>e.type==='battle').length,1);
+ assert.equal(h.events.findLast(e=>e.type==='battle').id,'argus');
+ assert.equal(h.progress.flags.CH2_ARGUS_PENDING,true);
+});
+
+test('scene resumes alarm, flight, landing, and dialogue checkpoints in the integration room without opening combat early',()=>{
+ const room=dungeonRoomId(FACILITY_ZONES[4],5);
+ for(const [type,step]of [['argus-entrance',0],['argus-entrance',1],['argus-entrance',2],['argus-dialogue',2]]){
+  const h=harness(through('facility-enter'));h.progress.flags.CH2_CORE_SHUTTERS=true;h.event('argus-entrance-start');
+  if(type==='argus-entrance')h.event({type:'argus-entrance-step',step});
+  else{h.event('argus-entrance-complete');h.event({type:'argus-dialogue-step',step});}
+  h.load('fairmont-facility-5');h.scene.resumeStory();
+  assert.equal(h.events.findLast(e=>e.type==='travel').location,room);
+  h.events.length=0;h.load(room);h.scene.resumeStory();
+  assert.deepEqual(h.events.find(e=>e.type==='entrance').pending,{type,step});
+  assert.equal(h.events.some(e=>e.type==='battle'),false);
+  h.finishEntrance();
+  const lines=h.events.findLast(e=>e.type==='dialogue').lines;
+  assert.equal(lines.length,type==='argus-dialogue'?2:4);
+  h.finishDialogue();assert.equal(h.events.findLast(e=>e.type==='battle').id,'argus');
+ }
+});
+
+test('an A.R.G.U.S. defeat waits at the clinic and an explicit terminal retry skips the already seen flight',()=>{
+ const h=harness(through('facility-enter'));h.progress.flags.CH2_CORE_SHUTTERS=true;
+ h.event('argus-entrance-start');h.event('argus-entrance-complete');h.event('argus-start');
+ abortFairmontBattle(h.progress,{id:'argus'});h.load('fairmont-clinic');h.scene.resumeStory();
+ assert.equal(resumeEvent(h.progress),null);assert.equal(h.events.some(e=>['battle','travel','entrance'].includes(e.type)),false);
+ h.load(dungeonRoomId(FACILITY_ZONES[4],5));h.interact({kind:'argus'});
+ assert.equal(h.events.findLast(e=>e.type==='entrance').pending.type,'argus-dialogue');
+ h.finishEntrance();h.finishDialogue();assert.equal(h.events.findLast(e=>e.type==='battle').id,'argus');
 });
 
 test('a scripted defeat can recover at the clinic and resumes only through the guard conversation',()=>{

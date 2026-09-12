@@ -1,0 +1,48 @@
+{
+  "ch2_drone_factory_theme": {
+    "bpm": 126,
+    "bars": 32,
+    "events": 192,
+    "sampleRate": 44100,
+    "channels": 2,
+    "duration": 60.95238095238095,
+    "peak": 0.89,
+    "rms": 0.14894303992195013,
+    "boundaryDelta": 0.0
+  },
+  "ch2_argus_battle_theme": {
+    "bpm": 168,
+    "bars": 48,
+    "events": 648,
+    "sampleRate": 44100,
+    "channels": 2,
+    "duration": 68.57142857142857,
+    "peak": 0.8899999999999999,
+    "rms": 0.21303519437364082,
+    "boundaryDelta": 0.0
+  },
+  "argus-security-alarm": {
+    "sampleRate": 44100,
+    "channels": 2,
+    "duration": 2.2,
+    "peak": 0.3538479488427492,
+    "rms": 0.24452439204993873,
+    "boundaryDelta": 0.0
+  },
+  "argus-blue-boosters": {
+    "sampleRate": 44100,
+    "channels": 2,
+    "duration": 1.2,
+    "peak": 0.5457869473160212,
+    "rms": 0.10687412117487387,
+    "boundaryDelta": 0.0
+  },
+  "argus-stabilize": {
+    "sampleRate": 44100,
+    "channels": 2,
+    "duration": 0.62,
+    "peak": 0.7045151823628248,
+    "rms": 0.08329277571917816,
+    "boundaryDelta": 6.589384776331418e-09
+  }
+}

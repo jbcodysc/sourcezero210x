@@ -6,6 +6,8 @@ import {loadCitizenSheets,prepareCitizenSheets,createCitizenActor,drawCitizenAct
 import {normalizedMovement,direction} from '../lab/world-rules.mjs';
 import {walk} from '../city/city-world.mjs';
 import {touchingBounds} from '../city/encounter-contact.mjs';
+import {ArgusEntrance} from './argus-entrance.mjs';
+import {explorationMusicMode} from '../city/music-routing.mjs';
 import {SANDWICH_HEAL,SANDWICH_PRICE,GEAR,restore,buy} from '../city/progress.mjs';
 const $=s=>document.querySelector(s),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const streetNPCs=[
@@ -49,7 +51,8 @@ export function createFairmontScene(api){
    sceneUI(this.map?this.map.title.toUpperCase():this.hotel?this.hotel.title.toUpperCase():this.location==='fairmont'?'FAIRMONT JUNCTION · '+(this.night?'NIGHT':'DAY'):this.building?.name||'FAIRMONT JUNCTION');
    const chapter=$('.chapter');if(chapter)chapter.innerHTML='<span>02</span><div>FAIRMONT JUNCTION<small>'+(this.night?'The city between shifts':'An ordinary industrial afternoon')+'</small></div>';
    $('#scene-status span').textContent=this.map||this.hotel?'INTERIOR':this.night?'NIGHT':'DAYLIGHT';$('#stage').setAttribute('aria-label','Explore Fairmont Junction');document.title='SOURCE ZERO · Fairmont Junction';
-   sound.setMode(this.map?'dungeon':this.location==='fairmont'?'city':'interior');sound.fountain(Infinity);
+   const pending=story.resumeEvent(p);if(pending?.type?.startsWith('argus-')){this.arrival=true;this.locked=true;}
+   sound.setMode(pending?.type?.startsWith('argus-')?'argus-entrance':explorationMusicMode(this));sound.fountain(Infinity);
    if(this.map)this.createComplex();else if(this.location==='fairmont')this.createJunction();else if(this.hotel)this.createHotel();else this.createInterior();
    const point=nearestWalkable(this.location,this.entry);this.player=actor(this,point.x,point.y,0,110,true);
    const size=this.map||this.hotel|| (this.location==='fairmont'?CITY:VIEW);this.cameras.main.setBounds(0,0,size.width,size.height);this.cameras.main.startFollow(this.player.sprite,true,1,1);this.cameras.main.centerOn(point.x,point.y);
@@ -202,7 +205,7 @@ export function createFairmontScene(api){
    if(m.rest){this.prop('bed',m.rest.x,m.rest.y,1);this.label(m.rest.x,m.rest.y-120,'FIRST AID',17,'#b6f4cf');this.interactables.push({...m.rest,kind:'rest',id:'recovery',name:'Use employee first aid',range:115});}
    if(m.elevator){this.drawRoomDoor({...m.elevator,label:'SERVICE ELEVATOR'});this.interactables.push({...m.elevator,kind:'room-door',id:'boss-elevator',name:p.flags.CH2_ARGUS_DEFEATED?'Take elevator to the entrance':'Check the locked elevator',range:115});}
    if(m.boss&&m.isMarket){this.prop('console',m.boss.x,m.boss.y,2.1);this.interactables.push({...m.boss,id:'breaker',kind:'breaker',name:'Examine the main breaker and primary lines',range:145});}
-   if(m.boss&&!m.isMarket){this.prop('droneDock',m.boss.x-155,m.boss.y-90,1.5);this.prop('assemblyArm',m.boss.x+145,m.boss.y-90,1.6);this.interactables.push({...m.boss,id:'argus',kind:'argus',name:p.flags.CH2_ARGUS_DEFEATED?'Access the control archive':'Enter the integration chamber',range:150});}
+   if(m.boss&&!m.isMarket){this.prop('droneDock',m.boss.x-155,m.boss.y-90,1.5);this.prop('assemblyArm',m.boss.x+145,m.boss.y-90,1.6);this.prop('console',m.boss.x,m.boss.y,.85);this.interactables.push({...m.boss,id:'argus',kind:'argus',name:p.flags.CH2_ARGUS_DEFEATED?'Access the control archive':'Examine the integration terminal',range:150});}
    if(m.isMarket&&p.flags.CH2_WRM_CLEARED){this.add.rectangle(0,0,m.width,m.height,0x101e39,.4).setOrigin(0).setDepth(10000);for(const r of m.floor)this.add.circle(r.x+80,r.y+20,90,0xf5593c,.2).setDepth(10001);this.label(m.width/2,100,'EMERGENCY POWER',20,'#ffb98a');}
    const collection=state.fairmontSlots||={};this.slots=collection[m.id]||(collection[m.id]=m.spawns.map(s=>({...s})));for(const s of this.slots)if(s.enemy)this.addPatrol(s);
   }
@@ -258,7 +261,7 @@ export function createFairmontScene(api){
     this.showDialogue((entries||[]).flat().map(text=>({speaker:m.isMarket?'Staff terminal':'Employee terminal',side:'npc',text})),this.player);return;
    }
    if(near.kind==='breaker'){if(p.flags.CH2_WRM_CLEARED){this.say('The primary lines are cut. Emergency systems remain on their own circuit.');return;}if(!p.flags.CH2_KAREN_DEFEATED){const plan=story.conversation('market-manager',p);this.showDialogue(plan.lines,this.player,()=>{const result=this.applyEvent('karen-start');if(result.effects.includes('karen-battle'))this.beginBattle('karen');});}else{this.say('You cut the primary control lines. Displays go dark across three floors. Emergency lamps blink awake.',this.player,()=>{const result=this.applyEvent('cut-lines');if(result.changed){sound.powerDown();this.travel(m.id,{x:m.boss.x-140,y:m.boss.y});}});}return;}
-   if(near.kind==='argus'){if(p.flags.CH2_ARGUS_DEFEATED){const plan=story.conversation('archive',p);this.showDialogue(plan.lines,this.player,()=>{this.applyEvent('archive-read');if(getProgress().flags.CH2_COMPLETE)this.showChapterEnd();});}else if(!p.flags.CH2_CORE_SHUTTERS)this.say('Integration is sealed. Network control can release these shutters.');else {const plan=story.conversation('argus',p);this.showDialogue(plan.lines,this.player,()=>{const result=this.applyEvent('argus-start');if(result.effects.includes('argus-battle'))this.beginBattle('argus');});}return;}
+   if(near.kind==='argus'){if(p.flags.CH2_ARGUS_DEFEATED){const plan=story.conversation('archive',p);this.showDialogue(plan.lines,this.player,()=>{this.applyEvent('archive-read');if(getProgress().flags.CH2_COMPLETE)this.showChapterEnd();});}else if(!p.flags.CH2_CORE_SHUTTERS)this.say('Integration is sealed. Network control can release these shutters.');else this.runArgusEncounter();return;}
   }
   afterEvent(event){if(event==='protester-finished'){if(getProgress().flags.CH2_DEREK_LOCKED)this.removeCitizen('derek');this.runScan();}else if(event==='security-retry')this.beginBattle('junctionGuard',null,['junctionGuard','scriptedScanDrone','scriptedScanDrone']);else if(event==='decrypt-start')this.say('The report is still playing. Hired security and scanning drones are being sent to the commons. Harlan needs time with the module.');}
   openFairmontService(id,message=''){
@@ -279,7 +282,41 @@ export function createFairmontScene(api){
     if(pending.type==='scan')this.runScan();else this.beginBattle('junctionGuard',null,['junctionGuard','scriptedScanDrone','scriptedScanDrone']);
    }
    else if(pending.type==='karen-battle'){const room=MARKET_FLOORS[2]+'-room-5';if(this.location!==room)this.travel(room,mapFor(room).arrival);else this.beginBattle('karen');}
-   else if(pending.type==='argus-battle'){const room=FACILITY_ZONES[4]+'-room-5';if(this.location!==room)this.travel(room,mapFor(room).arrival);else this.beginBattle('argus');}
+   else if(pending.type.startsWith('argus-')){const room=FACILITY_ZONES[4]+'-room-5';if(this.location!==room)this.travel(room,mapFor(room).arrival);else if(pending.type==='argus-battle')this.beginBattle('argus');else this.runArgusEncounter();}
+  }
+  runArgusEncounter(){
+   const p=getProgress();if(this.argusEntrance||this.argusDialogue||this.transitioning||p.flags.CH2_ARGUS_DEFEATED)return;
+   if(!p.flags.CH2_ARGUS_ENCOUNTER_ACTIVE)this.applyEvent('argus-entrance-start');
+   const pending=story.resumeEvent(getProgress());if(!pending?.type?.startsWith('argus-'))return;
+   if(pending.type==='argus-battle'){this.beginBattle('argus');return;}
+   remember(this);this.arrival=true;this.locked=true;resetControls();
+   this.playArgusEntrance(pending,boss=>{this.applyEvent('argus-entrance-complete');this.runArgusDialogue(boss);});
+  }
+  playArgusEntrance(pending,complete){
+   this.input.keyboard.resetKeys();
+   this.player.dir='up';this.player.walking=false;drawActor(this.player,0);$('#prompt').hidden=true;$('#overlay').innerHTML='';
+   const target={x:this.map.boss.x,y:this.map.boss.y-80};
+   const entrance=new ArgusEntrance(this,{sound,target,
+    onStep:step=>this.applyEvent({type:'argus-entrance-step',step}),
+    onComplete:boss=>{
+     if(!this.sys.isActive()||this.argusEntrance!==entrance)return;
+     complete(boss);
+    },
+    onDispose:()=>{if(this.argusEntrance===entrance){this.argusEntrance=null;this.arrival=false;this.argusDialogue=false;this.locked=!!this.dialog||!!this.cutscene||this.transitioning;resetControls();}}
+   });
+   this.argusEntrance=entrance;entrance.start(pending.type==='argus-dialogue'?2:pending.step);
+  }
+  runArgusDialogue(boss){
+   const plan=story.conversation('argus',getProgress()),step=getProgress().chapter2ArgusDialogueStep||0;
+   this.arrival=false;this.locked=true;this.argusDialogue=true;resetControls();this.input.keyboard.resetKeys();
+   const done=()=>{this.argusDialogue=false;const result=this.applyEvent('argus-start');if(result.effects.includes('argus-battle'))this.beginBattle('argus');};
+   this.argusDialogueOffset=step;
+   if(step>=plan.lines.length){done();return;}
+   this.showDialogue(plan.lines.slice(step),boss,done);
+  }
+  advanceDialogue(){
+   if(this.argusDialogue&&this.dialog)this.applyEvent({type:'argus-dialogue-step',step:this.argusDialogueOffset+this.dialog.index+1});
+   super.advanceDialogue();
   }
   renderNarration(){super.renderNarration();const next=$('#overlay [data-action="narration-next"]');if(next)next.hidden=true;if(this.stationAgent&&this.cutscene){const step=(this.cutscene.storyOffset||0)+this.cutscene.index;if(step>=7&&!this.stationAgent.leaving){this.stationAgent.leaving=true;this.tweens.add({targets:[this.stationAgent.sprite,this.stationAgent.shadow],x:250,y:930,alpha:0,duration:1500});}}}
   advanceNarration(){

@@ -40,6 +40,12 @@ export const SCAN_SCENE = [
   {speaker:'Narration',text:'A guard’s wrist display flashes. He angles the screen away. Two drones turn toward you.'},
   {speaker:'Contract Security',text:'You. Stay exactly where you are.'}
 ];
+export const ARGUS_SCENE = [
+  {speaker:'A.R.G.U.S.',text:'A.R.G.U.S. Autonomous Response, Guidance & Unified Security. All local systems are under coordinated control.'},
+  {speaker:'Narration',text:'A sensor passes over you. The hangar doors close. The dedicated security chassis turns to face you.'},
+  {speaker:'A.R.G.U.S.',text:'Identity unresolved. Classification match confirmed. Recovery priority elevated.'},
+  {speaker:'A.R.G.U.S.',text:'Preserve the subject. Restrain and recover.'}
+];
 export const ARCHIVE_SCENE = [
   {speaker:'Archive terminal',text:'FIELD CLASSIFICATION / DEPLOYMENT HISTORY. Local combat control offline. Archive access remains operational.'},
   {speaker:'Archive terminal',text:'Standard routine: quietly scan a person; assign a restricted classification; transmit the result; resume the assigned public task. Do not disclose classification to the subject.'},
@@ -129,6 +135,9 @@ export function resumeEvent(s){
   if(flag(s,'CH2_PLAYER_SCANNED')&&!flag(s,'CH2_CITY_SECURITY_HOSTILE')&&!flag(s,'CH2_SECURITY_RETRY_NEEDED'))return {type:'security-battle',step:0};
   if(flag(s,'CH2_KAREN_PENDING')&&!flag(s,'CH2_KAREN_DEFEATED'))return {type:'karen-battle',step:0};
   if(flag(s,'CH2_ARGUS_PENDING')&&!flag(s,'CH2_ARGUS_DEFEATED'))return {type:'argus-battle',step:0};
+  if(flag(s,'CH2_ARGUS_ENCOUNTER_ACTIVE')&&!flag(s,'CH2_ARGUS_DEFEATED'))return flag(s,'CH2_ARGUS_ENTRANCE_SEEN')
+    ?{type:'argus-dialogue',step:s.chapter2ArgusDialogueStep||0}
+    :{type:'argus-entrance',step:s.chapter2ArgusEntranceStep||0};
   return null;
 }
 
@@ -206,13 +215,36 @@ export function transition(s,event){
       if(!all(s,'CH2_CITY_SECURITY_HOSTILE','CH2_DECRYPT_IN_PROGRESS'))break;
       mark('CH2_DRONE_KEYCARD','Harlan traced the code builds to Cenexis Autonomous Systems and made a keycard for its service entrance.');addItem(FACILITY_KEYCARD);break;
     case 'facility-enter':if(canEnter(s,'facility'))mark('CH2_DRONE_FACILITY_ENTERED');break;
+    case 'argus-entrance-start':
+      if(!all(s,'CH2_DRONE_FACILITY_ENTERED','CH2_DRONE_KEYCARD','CH2_CORE_SHUTTERS')||flag(s,'CH2_ARGUS_DEFEATED')||flag(s,'CH2_ARGUS_ENCOUNTER_ACTIVE')||flag(s,'CH2_ARGUS_PENDING'))break;
+      mark('CH2_ARGUS_ENTRANCE_STARTED');mark('CH2_ARGUS_ENCOUNTER_ACTIVE');
+      n.chapter2ArgusDialogueStep=0;
+      if(!flag(s,'CH2_ARGUS_ENTRANCE_SEEN'))n.chapter2ArgusEntranceStep=0;
+      effects.push(flag(s,'CH2_ARGUS_ENTRANCE_SEEN')?'argus-dialogue':'argus-entrance');break;
+    case 'argus-entrance-step':{
+      const step=Number(event?.step);
+      if(!all(s,'CH2_ARGUS_ENCOUNTER_ACTIVE','CH2_ARGUS_ENTRANCE_STARTED')||flag(s,'CH2_ARGUS_ENTRANCE_SEEN')||flag(s,'CH2_ARGUS_DEFEATED'))break;
+      if(Number.isInteger(step)&&step>(s.chapter2ArgusEntranceStep||0)&&step<=2){n.chapter2ArgusEntranceStep=step;changed=true;}break;
+    }
+    case 'argus-entrance-complete':
+      if(!all(s,'CH2_ARGUS_ENCOUNTER_ACTIVE','CH2_ARGUS_ENTRANCE_STARTED')||flag(s,'CH2_ARGUS_ENTRANCE_SEEN')||flag(s,'CH2_ARGUS_DEFEATED'))break;
+      mark('CH2_ARGUS_ENTRANCE_SEEN');n.chapter2ArgusEntranceStep=2;effects.push('argus-dialogue');break;
+    case 'argus-dialogue-step':{
+      const step=Number(event?.step);
+      if(!all(s,'CH2_ARGUS_ENCOUNTER_ACTIVE','CH2_ARGUS_ENTRANCE_SEEN')||flag(s,'CH2_ARGUS_PENDING')||flag(s,'CH2_ARGUS_DEFEATED'))break;
+      if(Number.isInteger(step)&&step>(s.chapter2ArgusDialogueStep||0)&&step<=ARGUS_SCENE.length){n.chapter2ArgusDialogueStep=step;changed=true;}break;
+    }
     case 'argus-start':
-      if(!all(s,'CH2_DRONE_FACILITY_ENTERED','CH2_DRONE_KEYCARD')||flag(s,'CH2_ARGUS_DEFEATED'))break;
+      if(!all(s,'CH2_DRONE_FACILITY_ENTERED','CH2_DRONE_KEYCARD','CH2_ARGUS_ENCOUNTER_ACTIVE','CH2_ARGUS_ENTRANCE_SEEN')||flag(s,'CH2_ARGUS_DEFEATED'))break;
       if(!flag(s,'CH2_ARGUS_PENDING')){mark('CH2_ARGUS_PENDING');effects.push('argus-battle');}break;
-    case 'argus-aborted':clear('CH2_ARGUS_PENDING');break;
+    case 'argus-aborted':
+      // Older saves reached combat without the new entrance flags. A defeat
+      // still proves the introduction is over; retry only after another visit.
+      if(flag(s,'CH2_ARGUS_PENDING'))mark('CH2_ARGUS_ENTRANCE_SEEN');
+      clear('CH2_ARGUS_PENDING');clear('CH2_ARGUS_ENCOUNTER_ACTIVE');break;
     case 'argus-defeated':
       if(!all(s,'CH2_ARGUS_PENDING','CH2_DRONE_FACILITY_ENTERED'))break;
-      clear('CH2_ARGUS_PENDING');mark('CH2_ARGUS_DEFEATED','A.R.G.U.S.’s local security chassis is down. The archive terminal is still operational.');break;
+      clear('CH2_ARGUS_PENDING');clear('CH2_ARGUS_ENCOUNTER_ACTIVE');mark('CH2_ARGUS_ENTRANCE_SEEN');mark('CH2_ARGUS_DEFEATED','A.R.G.U.S.’s local security chassis is down. The archive terminal is still operational.');break;
     case 'archive-read':
       if(!flag(s,'CH2_ARGUS_DEFEATED'))break;
       mark('CH2_COMPLETE','Cenexis quietly classifies people. I matched the same hidden profile in Bellwether and Fairmont; the earlier delivery build tried to capture me. The criteria remain restricted. Reports route through Northbridge’s civic integration node, where my childhood friend lives.');break;
@@ -284,12 +316,7 @@ export function conversation(rawId,s){
     if(flag(s,'CH2_KAREN_DEFEATED'))return make([{speaker:'{hero}',text:'Now, the reason I came all the way up here.'},{speaker:'Narration',text:'The breaker lines are within reach. Cut them and leave the store on emergency power.'}],'cut-lines');
     return make([{speaker:'Narration',text:'As you reach for the service lines, the manager steps into the doorway in compact powered security armor.'},'Kinetic Asset Recovery & Enforcement Node. K.A.R.E.N., to you.','You have entered the final stage of our loss-prevention process. There will not be a feedback survey.'],'karen-start');
   }
-  if(id==='argus')return make(flag(s,'CH2_ARGUS_DEFEATED')?['Local combat control unavailable. Archive station remains online.']:[
-    'A.R.G.U.S. Autonomous Response, Guidance & Unified Security. All local systems are under coordinated control.',
-    {speaker:'Narration',text:'A sensor passes over you. The hangar doors close. A dedicated security chassis rises from its dock.'},
-    'Identity unresolved. Classification match confirmed. Recovery priority elevated.',
-    'Preserve the subject. Restrain and recover.'
-  ],flag(s,'CH2_ARGUS_DEFEATED')?null:'argus-start');
+  if(id==='argus')return make(flag(s,'CH2_ARGUS_DEFEATED')?['Local combat control unavailable. Archive station remains online.']:ARGUS_SCENE,flag(s,'CH2_ARGUS_DEFEATED')?null:'argus-start');
   if(id==='archive')return flag(s,'CH2_ARGUS_DEFEATED')?make(ARCHIVE_SCENE,flag(s,'CH2_COMPLETE')?null:'archive-read'):make(['Archive locked while integration security is active.']);
   return null;
 }
