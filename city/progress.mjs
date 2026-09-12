@@ -9,6 +9,7 @@ export const GEAR=Object.freeze({
 });
 export const weaponBonus=s=>s.upgrade>=2?GEAR['resonant-drive'].attack:s.upgrade?6:0;
 export const armorDefense=s=>GEAR[s.armor]?.kind==='body'?GEAR[s.armor].defense:0;
+export const playerStats=s=>({health:s.maxHp,attack:31+(s.level-1)*3+weaponBonus(s),defense:(s.level-1)*2+armorDefense(s)});
 export const STORY_XP={b1:35,b3:50,b4:65,b5:70,b6:90,b7:85,b8:100};
 export function freshProgress(name='Alex'){return {version:1,name,opening:'intro',flags:{},notes:[],hp:110,maxHp:110,level:1,xp:0,credits:70,snacks:1,upgrade:0,armor:null,inventory:[],location:'lab',position:{x:768,y:838},visited:['lab']};}
 export function milestone(s,id,xp){if(s.flags['xp:'+id])return false;s.flags['xp:'+id]=true;award(s,xp,0);return true;}

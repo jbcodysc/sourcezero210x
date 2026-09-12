@@ -1,5 +1,5 @@
 import {rollHealth} from '../lab/battle-rules.mjs';
-import {SANDWICH_HEAL,armorDefense,weaponBonus} from './progress.mjs';
+import {SANDWICH_HEAL,playerStats} from './progress.mjs';
 import {FAIRMONT_ENEMIES} from '../fairmont/enemies.mjs';
 export {rollHealth};
 export const MISS_RATE=.05,SILLY_RATE=.15,HELP_RATE=.05,ENEMY_DAMAGE_MULTIPLIER=1.3,MAX_ACTIVE_ENEMIES=3;
@@ -29,7 +29,7 @@ export function targetEnemy(b){return b.enemies.find(e=>e.uid===b.targetUid&&e.h
 export function selectTarget(b,uid){if(b.phase!=='command'||!b.enemies.some(e=>e.uid===uid&&e.hp>0))return false;b.targetUid=uid;return true;}
 export function encounterRewards(b){return b.enemies.filter(e=>e.hp<=0).reduce((r,e)=>({xp:r.xp+e.stats.xp,credits:r.credits+e.stats.credits}),{xp:0,credits:0});}
 export function createEncounter(id,progress,group=null){
- const foe=makeFoe(id,0),enemy=foe.stats,b={phase:'command',turn:1,hp:progress.hp,targetHp:progress.hp,maxHp:progress.maxHp,snacks:progress.snacks,guarding:false,lastAction:null,enemies:[foe],enemyQueue:[],targetUid:0,nextUid:1,enemy,id,heroAttack:31+(progress.level-1)*3+weaponBonus(progress),defense:(progress.level-1)*2+armorDefense(progress),message:enemy.opening.replace('subject: Alex.','subject: '+(progress.name||'Alex')+'.')};
+ const foe=makeFoe(id,0),enemy=foe.stats,b={phase:'command',turn:1,hp:progress.hp,targetHp:progress.hp,maxHp:progress.maxHp,snacks:progress.snacks,guarding:false,lastAction:null,enemies:[foe],enemyQueue:[],targetUid:0,nextUid:1,enemy,id,heroAttack:playerStats(progress).attack,defense:playerStats(progress).defense,message:enemy.opening.replace('subject: Alex.','subject: '+(progress.name||'Alex')+'.')};
  if(group?.length){b.enemies=group.slice(0,MAX_ACTIVE_ENEMIES).map((kind,i)=>makeFoe(kind,i));b.nextUid=b.enemies.length;b.enemy=b.enemies[0].stats;}
  // The selected foe retains the existing HUD/test-facing health interface.
  for(const [key,field]of [['enemyHp','hp'],['enemyMaxHp','maxHp'],['charged','charged']])Object.defineProperty(b,key,{get:()=>targetEnemy(b)[field],set:v=>{targetEnemy(b)[field]=v;}});
@@ -38,18 +38,19 @@ export function createEncounter(id,progress,group=null){
 export function playerAction(b,action,rng=Math.random){
  if(b.phase!=='command'||!['attack','guard','snack'].includes(action))return {ok:false};
  if(action==='snack'&&(!b.snacks||b.hp>=b.maxHp&&b.targetHp>=b.maxHp))return {ok:false,message:b.snacks?'Your HP is already full.':'No sandwiches left.'};
- b.phase='resolving';b.lastAction=action;b.guarding=action==='guard';let damage=0,miss=false;const foe=targetEnemy(b);
+ b.phase='resolving';b.lastAction=action;b.guarding=action==='guard';let damage=0,miss=false,recovered=0;const foe=targetEnemy(b);
  if(action==='attack'){
   miss=rng()<MISS_RATE;
   if(miss)b.message='Your vibrosword cuts empty air. Miss!';
   else{damage=b.heroAttack+(foe.charged?4:0);foe.hp=Math.max(0,foe.hp-damage);b.message='Your vibrosword strikes '+foe.stats.name+'. '+damage+' damage!';if(!foe.hp)b.message+=' '+(foe.stats.kind==='human'?'They retreat.':'It shuts down.');}
  }
  if(action==='guard')b.message='You brace behind the vibrosword. Incoming damage will be reduced.';
- if(action==='snack'){b.snacks--;b.targetHp=Math.min(b.maxHp,b.targetHp+SANDWICH_HEAL);b.hp=Math.min(b.maxHp,Math.max(b.hp,b.targetHp));b.message='You eat a pocket sandwich. '+SANDWICH_HEAL+' HP recovered.';}
+ if(action==='snack'){recovered=Math.min(SANDWICH_HEAL,b.maxHp-b.targetHp);b.snacks--;b.targetHp=Math.min(b.maxHp,b.targetHp+SANDWICH_HEAL);b.hp=Math.min(b.maxHp,Math.max(b.hp,b.targetHp));b.message='You eat a pocket sandwich. '+recovered+' HP recovered.';}
+ const actionMessage=b.message;
  const survivors=livingEnemies(b);b.enemyQueue=survivors.map(e=>e.uid);
  if(!survivors.length){b.phase='victory';b.targetHp=b.hp;b.message=b.id==='regulator'?'The Cenexis override breaks. The regulator reboots into municipal control.':b.enemy.kind==='human'?'They drop their guard and flee.':b.enemy.kind==='animal'?'The rats scatter into the pipes.':'The machines fall silent.';}
  else if(foe.hp<=0)b.targetUid=survivors[0].uid;
- return {ok:true,damage,miss,targetUid:foe.uid};
+ return {ok:true,damage,miss,recovered,actionMessage,targetUid:foe.uid};
 }
 export function enemyAction(b,rng=Math.random){
  if(b.phase!=='resolving')return {ok:false};
