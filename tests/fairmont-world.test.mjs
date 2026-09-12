@@ -1,15 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ARRIVAL, BUILDINGS, CITY, MARKET_FLOORS, FACILITY_ZONES, mapFor,
-  worldWalkable, nearestWalkable, citySpawns, spawnEvents, markDefeated, chaseWaypoint,
+  ARRIVAL, BUILDINGS, CITY, ROADS, PARK, PARK_DETAILS, MARKET_FLOORS, FACILITY_ZONES,
+  ROOM_LOCATIONS, HOTEL, HOTEL_LOCATIONS, mapFor, hotelMapFor, canonicalLocation, dungeonRoomId,
+  worldWalkable, nearestWalkable, citySpawns, spawnEvents, markDefeated, retireRoomSpawns, chaseWaypoint,
 } from '../fairmont/world.mjs';
 import { createFairmontScene } from '../fairmont/scene.mjs';
 
-// Test the same collision function used by the moving player. A 20-pixel grid
-// fits inside the narrowest 110-pixel corridor; intermediate probes ensure an
-// edge cannot skip through a thin obstacle. Final off-grid targets are linked
-// to a reached cell with the same collision probes.
+// Use the player's collision function. Intermediate probes cannot skip through
+// furniture; off-grid targets are linked to a reached cell using the same rule.
 function reachableGrid(location, start, dimensions, collision = (x,y) => worldWalkable(location,x,y)) {
   const step = 20, stride = Math.ceil(dimensions.width / step) + 3;
   const height = Math.ceil(dimensions.height / step) + 3;
@@ -56,23 +55,87 @@ test('arrival connects to every city building door and each security spawn', () 
   for (const spawn of citySpawns()) assert.ok(reachable(spawn), `${spawn.id} is obstructed or isolated`);
 });
 
-for (const location of [...MARKET_FLOORS,...FACILITY_ZONES]) {
-  test(`${location}: stairs, every room, puzzle, boss, supplies and rest point are reachable`, () => {
+for (const base of [...MARKET_FLOORS,...FACILITY_ZONES]) {
+  test(`${base}: every separate room has reachable doors, supplies and controls`, () => {
+   for(const location of ROOM_LOCATIONS.filter(id=>mapFor(id).baseId===base)){
     const map = mapFor(location), reachable = reachableGrid(location,map.arrival,map);
     const targets = [
-      ['up stairs',map.up],['down stairs',map.down],['boss',map.boss],
-      ...map.rooms.map(room => [`room ${room.id}`,map.point(room.id)]),
+      ...map.doors.map(door=>[door.id,door]),
       ...map.supply.map(supply => [supply.id,supply]),
       ...map.spawns.map(spawn => [spawn.id,spawn]),
+      ...map.logs.map(log=>['log '+log.index,log]),
       ...(map.puzzle ? [['puzzle',map.puzzle]] : []),
       ...(map.rest ? [['rest station',map.rest]] : []),
+      ...(map.boss ? [['boss',map.boss]] : []),
+      ...(map.elevator ? [['elevator',map.elevator]] : []),
     ];
     for (const [name,point] of targets) assert.ok(reachable(point), `${location}: ${name} is obstructed or disconnected`);
+    for(const door of map.doors)assert.ok(worldWalkable(door.target,door.position.x,door.position.y),`${location}: ${door.id} exits into a blocked destination`);
+   }
   });
 }
 
+test('rooms load as distinct enclosed areas connected only through door transitions',()=>{
+ assert.equal(ROOM_LOCATIONS.length,48);
+ for(const base of [...MARKET_FLOORS,...FACILITY_ZONES]){
+  const seen=new Set([base]),queue=[base];
+  for(let head=0;head<queue.length;head++)for(const door of mapFor(queue[head]).doors){
+   if(mapFor(door.target)?.baseId===base&&!seen.has(door.target)){seen.add(door.target);queue.push(door.target);}
+  }
+  assert.equal(seen.size,6,base+' has an unreachable room');
+  for(const id of seen){const map=mapFor(id);assert.equal(map.rooms.length,1);assert.equal(map.floor.length,1);assert.equal(map.corridors.length,0);assert.equal(map.id,id);assert.equal(worldWalkable(id,0,600),false);assert.equal(worldWalkable(id,1500,600),false);}
+ }
+});
+
+test('sparse dungeon encounters leave safe foyers and separate healing rooms',()=>{
+ for(const base of [...MARKET_FLOORS,...FACILITY_ZONES]){
+  const maps=ROOM_LOCATIONS.filter(id=>mapFor(id).baseId===base).map(mapFor);
+  assert.ok(maps.flatMap(m=>m.spawns).length<=4);
+  assert.ok(maps.every(m=>m.spawns.length<=1));
+  assert.equal(mapFor(base).spawns.length,0,'stairs arrive into a safe foyer');
+  assert.ok(maps.some(m=>m.supply.some(s=>s.kind==='snack')&&m.spawns.length===0));
+  assert.ok(maps.some(m=>m.spawns.length===1&&!m.supply.length&&!m.puzzle&&!m.rest&&!m.boss),'each floor includes an enemy-only room');
+  assert.ok(maps.filter(m=>m.spawns.length).every(m=>m.spawns[0].chance>0&&m.spawns[0].chance<1));
+ }
+});
+
+test('only the defeated final boss releases the facility return elevator and street exit',()=>{
+ const maps=ROOM_LOCATIONS.map(mapFor).filter(m=>!m.isMarket);
+ const elevators=maps.filter(m=>m.elevator);
+ assert.equal(elevators.length,1);
+ const room=elevators[0];assert.ok(room.boss);assert.equal(room.index,4);assert.equal(room.elevator.target,FACILITY_ZONES[0]);assert.equal(room.elevator.requiresFlag,'CH2_ARGUS_DEFEATED');
+ for(const map of maps)for(const door of map.doors){
+  if(door.target==='fairmont')assert.equal(door.requiresFlag,'CH2_ARGUS_DEFEATED');
+  const target=mapFor(door.target);if(target&&target.index>map.index)assert.ok(door.requiresFlag,'zone stairs must retain the control-terminal gate');
+  if(target&&target.index<map.index)assert.equal(target.index,map.index-1,'no premature shortcut jumps to receiving');
+ }
+});
+
+test('hotel has a public lobby, upstairs corridor and only one accessible guest bedroom',()=>{
+ const lobby=hotelMapFor(HOTEL.lobby),hall=hotelMapFor(HOTEL.hall),bedroom=hotelMapFor(HOTEL.bedroom);
+ assert.equal(BUILDINGS.find(b=>b.id==='hotel').stories,2);
+ assert.equal(lobby.kind,'lobby');assert.equal(lobby.bed,null);assert.ok(lobby.clerk);assert.ok(lobby.props.some(p=>p.type==='sofa'));assert.ok(lobby.props.some(p=>p.type==='desk'));
+ assert.ok(lobby.doors.some(d=>d.target===HOTEL.hall&&d.stairs));
+ assert.equal(hall.lockedDoors.length,4);assert.equal(hall.doors.filter(d=>d.target.startsWith('fairmont-hotel-room-')).length,1);assert.equal(hall.bed,null);
+ assert.ok(bedroom.bed);assert.equal(bedroom.doors[0].target,HOTEL.hall);
+ for(const id of HOTEL_LOCATIONS){const map=hotelMapFor(id),reachable=reachableGrid(id,map.arrival,map);for(const door of [...map.doors,...map.lockedDoors])assert.ok(reachable(door),id+' inaccessible '+door.id);if(map.bed)assert.ok(reachable(map.bed));}
+});
+
+test('the northwest commons is separate from industry and coffee is across town',()=>{
+ assert.ok(PARK.x<200&&PARK.y<200);
+ assert.ok(PARK_DETAILS.demolition.x+PARK_DETAILS.demolition.w<PARK.x+PARK.w/2);
+ assert.ok(PARK_DETAILS.intact.x>=PARK.x+PARK.w/2-40);
+ assert.ok(PARK_DETAILS.dirtPiles.length>=3&&PARK_DETAILS.fallenTrees.length>=2);
+ assert.ok(PARK_DETAILS.benches.length>=2&&PARK_DETAILS.fountain&&PARK_DETAILS.trees.length>=3);
+ const coffee=BUILDINGS.find(b=>b.id==='cafe');assert.ok(Math.hypot(coffee.door.x-PARK_DETAILS.npcs.derek.x,coffee.door.y-PARK_DETAILS.npcs.derek.y)>3000);
+ assert.ok(ROADS.verticalStarts[750]>PARK.y+PARK.h);
+ const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+ for(const b of BUILDINGS)assert.equal(overlap(b,PARK),false,b.id+' overlaps the park');
+ for(const [id,p]of Object.entries(PARK_DETAILS.npcs))assert.ok(worldWalkable('fairmont',p.x,p.y),id+' is obstructed');
+});
+
 test('floor walls, room furniture, city facades and construction enclosure keep their collision', () => {
-  for (const location of [...MARKET_FLOORS,...FACILITY_ZONES]) {
+  for (const location of ROOM_LOCATIONS) {
     const map = mapFor(location);
     assert.equal(worldWalkable(location,0,0),false);
     const prop = map.props[0];
@@ -80,7 +143,7 @@ test('floor walls, room furniture, city facades and construction enclosure keep 
     assert.ok(worldWalkable(location,map.arrival.x,map.arrival.y));
   }
   for (const building of BUILDINGS) assert.equal(worldWalkable('fairmont',building.x+building.w/2,building.y+building.h/2),false);
-  assert.equal(worldWalkable('fairmont',2550,2550),false);
+  assert.equal(worldWalkable('fairmont',PARK_DETAILS.demolition.x+200,PARK_DETAILS.demolition.y+200),false);
   assert.equal(worldWalkable('fairmont',-10,100),false);
 });
 
@@ -113,6 +176,13 @@ test('defeated patrols stay gone nearby and roll again only after leaving far of
   assert.equal(spawnEvents([spawn],player,view,true,()=>0)[0]?.type,'spawn');
 });
 
+test('unloading a separate room rearms one probabilistic patrol roll without affecting active battles',()=>{
+ const patrol={...slot(),chance:.72};spawnEvents([patrol],player,view,true,()=>0);markDefeated([patrol],patrol.id);
+ assert.equal(patrol.armed,false);retireRoomSpawns([patrol]);assert.equal(patrol.armed,true);assert.equal(patrol.enemy,null);
+ assert.deepEqual(spawnEvents([patrol],player,view,true,()=>.72),[]);assert.equal(patrol.armed,false);
+ retireRoomSpawns([patrol]);assert.equal(spawnEvents([patrol],player,view,true,()=>.71).length,1);
+});
+
 test('visible or nearby enemies are retained; far offscreen and story-disabled enemies are removed', () => {
   const spawn = slot();
   spawnEvents([spawn],player,view,true,()=>0);
@@ -126,10 +196,12 @@ test('visible or nearby enemies are retained; far offscreen and story-disabled e
 });
 
 test('save-position recovery supplies a walkable point for a stale blocked position', () => {
-  for (const location of ['fairmont',...MARKET_FLOORS,...FACILITY_ZONES,'fairmont-radio']) {
+  for (const location of ['fairmont',...ROOM_LOCATIONS,...HOTEL_LOCATIONS,'fairmont-radio']) {
     const recovered = nearestWalkable(location,{x:-1000,y:-1000});
     assert.ok(worldWalkable(location,recovered.x,recovered.y),`${location} recovery is blocked`);
   }
+  for(const base of [...MARKET_FLOORS,...FACILITY_ZONES]){assert.equal(canonicalLocation(base),base);assert.equal(mapFor(base).roomIndex,0);assert.equal(canonicalLocation(base+'-room-99'),base);}
+  assert.equal(canonicalLocation(dungeonRoomId(MARKET_FLOORS[0],3)),dungeonRoomId(MARKET_FLOORS[0],3));
 });
 
 // Run the real scene construction methods without a renderer. These lightweight
@@ -137,7 +209,7 @@ test('save-position recovery supplies a walkable point for a stale blocked posit
 // collision rectangles and interaction targets for geometry checks.
 function drawingObject() {
   const object = {width:320,height:400,displayWidth:320,displayHeight:400};
-  for (const key of ['setDepth','fillStyle','fillRect','fillRoundedRect','lineStyle','lineBetween','strokeRect','setOrigin','setTint','add','setStrokeStyle','setAngle']) object[key] = () => object;
+  for (const key of ['setDepth','fillStyle','fillRect','fillEllipse','fillRoundedRect','lineStyle','lineBetween','strokeRect','setOrigin','setTint','add','setStrokeStyle','setAngle']) object[key] = () => object;
   object.setScale = scale => {object.displayWidth=object.width*scale;object.displayHeight=object.height*scale;return object;};
   return object;
 }
@@ -145,13 +217,13 @@ function geometryScene(location) {
   const progress = {flags:{},visited:[]};
   const Scene = createFairmontScene({Base:class{constructor(){this.sys={settings:{}};}},getProgress:()=>progress,state:{}});
   const scene = new Scene();
-  Object.assign(scene,{location,roomId:location.replace('fairmont-',''),night:false,map:mapFor(location),npcs:[],interactables:[],obstacles:[],visuals:[]});
+  Object.assign(scene,{location,roomId:location.replace('fairmont-',''),night:false,map:mapFor(location),hotel:hotelMapFor(location),npcs:[],interactables:[],obstacles:[],visuals:[]});
   scene.building = BUILDINGS.find(b=>b.id===scene.roomId);
   scene.add = Object.fromEntries(['graphics','rectangle','container','image','tileSprite','ellipse','circle','text'].map(key=>[key,()=>drawingObject()]));
   scene.tweens={add:()=>{}};
   scene.label=()=>drawingObject();scene.prop=()=>drawingObject();
   scene.addCitizen=(id,name,x,y,row=0,text=null)=>{const npc={id,name,x,y,row,flavor:text};scene.npcs.push(npc);return npc;};
-  if(location==='fairmont')scene.createJunction();else if(scene.map)scene.createComplex();else scene.createInterior();
+  if(location==='fairmont')scene.createJunction();else if(scene.map)scene.createComplex();else if(scene.hotel)scene.createHotel();else scene.createInterior();
   return scene;
 }
 
@@ -168,10 +240,10 @@ function interactionCanBeSelected(scene, target, reachable) {
   return false;
 }
 
-test('runtime hotel bed, furniture details, services and exits remain separately selectable', () => {
-  for(const id of ['terminal','hotel','diner','apartment','clinic','radio','cafe','gear','books']) {
-    const scene=geometryScene('fairmont-'+id);
-    const reachable=reachableGrid(scene.location,{x:770,y:850},{width:1536,height:1024},(x,y)=>scene.canStand(x,y,scene.npcs));
+test('runtime hotel rooms, furniture details, services and exits remain separately selectable', () => {
+  for(const id of [...['terminal','diner','apartment','clinic','radio','cafe','gear','books'].map(x=>'fairmont-'+x),...HOTEL_LOCATIONS]) {
+    const scene=geometryScene(id);
+    const reachable=reachableGrid(scene.location,scene.hotel?.arrival||{x:770,y:850},{width:1536,height:1024},(x,y)=>scene.canStand(x,y,scene.npcs));
     const targets=[...scene.interactables,...scene.npcs.map(n=>({...n,kind:'npc',range:120}))];
     for(const target of targets) assert.ok(interactionCanBeSelected(scene,target,reachable),`${id}: ${target.id} is obstructed or always hidden by another nearby interaction`);
   }
@@ -193,7 +265,7 @@ test('runtime market and facility service entrances, exit return points and city
 });
 
 test('runtime complex interactions are selectable without a neighboring terminal taking priority', () => {
-  for(const location of [...MARKET_FLOORS,...FACILITY_ZONES]) {
+  for(const location of ROOM_LOCATIONS) {
     const scene=geometryScene(location);
     const reachable=reachableGrid(location,scene.map.arrival,scene.map,(x,y)=>scene.canStand(x,y,scene.npcs));
     for(const target of scene.interactables) assert.ok(interactionCanBeSelected(scene,target,reachable),`${location}: ${target.id} cannot be selected from reachable floor`);
@@ -215,13 +287,12 @@ function assertChaseReaches(location,start,goal){
  return turns;
 }
 
-test('patrols navigate room walls and furniture through corridors without cutting corners',()=>{
- for(const location of [...MARKET_FLOORS,...FACILITY_ZONES]){
-  const map=mapFor(location);
-  // Across the vertical room gap, a direct chase intersects furniture and wall.
-  assertChaseReaches(location,{x:550,y:450},{x:550,y:960});
-  assertChaseReaches(location,map.point(0),map.point(11));
-  assertChaseReaches(location,map.point(11),map.point(0));
+test('patrols route around furniture within their current room without leaving it',()=>{
+ for(const base of [...MARKET_FLOORS,...FACILITY_ZONES]){
+  const location=dungeonRoomId(base,1);
+  assertChaseReaches(location,{x:275,y:365},{x:600,y:625});
+  assertChaseReaches(location,{x:600,y:625},{x:275,y:365});
+  assertChaseReaches(location,{x:775,y:860},{x:775,y:375});
  }
 });
 
@@ -229,11 +300,11 @@ test('city pursuit routes around building footprints and the closed construction
  const building=BUILDINGS.find(b=>b.id==='radio');
  const turns=assertChaseReaches('fairmont',{x:building.x-65,y:building.y+building.h/2},{x:building.x+building.w+65,y:building.y+building.h/2});
  assert.ok(turns>1,'a city chase should route around the building instead of going through it');
- assertChaseReaches('fairmont',{x:2180,y:2650},{x:3030,y:2650});
+ assertChaseReaches('fairmont',{x:100,y:450},{x:1030,y:450});
 });
 
-test('open corridors chase directly and invalid blocked endpoints fail safely',()=>{
- const location=FACILITY_ZONES[0],from={x:350,y:450},to={x:350,y:550};
+test('open room floor chases directly and invalid blocked endpoints fail safely',()=>{
+ const location=FACILITY_ZONES[0],from={x:650,y:700},to={x:800,y:700};
  assert.deepEqual(chaseWaypoint(location,from,to),to);
  assert.deepEqual(chaseWaypoint(location,from,{x:0,y:0}),from);
  assert.deepEqual(chaseWaypoint(location,from,{x:NaN,y:0}),from);

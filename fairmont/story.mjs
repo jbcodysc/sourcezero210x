@@ -126,7 +126,7 @@ export function objective(s){
 export function resumeEvent(s){
   if(flag(s,'CH2_BELLWETHER_PENDING'))return {type:'bellwether',step:s.chapter2SceneStep||0};
   if(flag(s,'CH2_PARK_ESCALATION_TRIGGERED')&&!flag(s,'CH2_PLAYER_SCANNED'))return {type:'scan',step:s.chapter2SceneStep||0};
-  if(flag(s,'CH2_PLAYER_SCANNED')&&!flag(s,'CH2_CITY_SECURITY_HOSTILE'))return {type:'security-battle',step:0};
+  if(flag(s,'CH2_PLAYER_SCANNED')&&!flag(s,'CH2_CITY_SECURITY_HOSTILE')&&!flag(s,'CH2_SECURITY_RETRY_NEEDED'))return {type:'security-battle',step:0};
   if(flag(s,'CH2_KAREN_PENDING')&&!flag(s,'CH2_KAREN_DEFEATED'))return {type:'karen-battle',step:0};
   if(flag(s,'CH2_ARGUS_PENDING')&&!flag(s,'CH2_ARGUS_DEFEATED'))return {type:'argus-battle',step:0};
   return null;
@@ -196,7 +196,12 @@ export function transition(s,event){
       mark('CH2_PLAYER_SCANNED');resetStep();effects.push('security-battle');break;
     case 'security-defeated':
       if(!all(s,'CH2_PLAYER_SCANNED','CH2_PARK_ESCALATION_TRIGGERED'))break;
+      clear('CH2_SECURITY_RETRY_NEEDED');
       mark('CH2_CITY_SECURITY_HOSTILE','A drone scanned me, then a guard and two drones attacked. Cenexis security is looking for me. Ordinary service robots continue their work.');break;
+    case 'security-aborted':
+      if(flag(s,'CH2_PLAYER_SCANNED')&&!flag(s,'CH2_CITY_SECURITY_HOSTILE'))mark('CH2_SECURITY_RETRY_NEEDED');break;
+    case 'security-retry':
+      if(flag(s,'CH2_SECURITY_RETRY_NEEDED')){clear('CH2_SECURITY_RETRY_NEEDED');effects.push('security-battle');}break;
     case 'keycard':
       if(!all(s,'CH2_CITY_SECURITY_HOSTILE','CH2_DECRYPT_IN_PROGRESS'))break;
       mark('CH2_DRONE_KEYCARD','Harlan traced the code builds to Cenexis Autonomous Systems and made a keycard for its service entrance.');addItem(FACILITY_KEYCARD);break;
@@ -212,7 +217,7 @@ export function transition(s,event){
       if(!flag(s,'CH2_ARGUS_DEFEATED'))break;
       mark('CH2_COMPLETE','Cenexis quietly classifies people. I matched the same hidden profile in Bellwether and Fairmont; the earlier delivery build tried to capture me. The criteria remain restricted. Reports route through Northbridge’s civic integration node, where my childhood friend lives.');break;
     case 'derek-accept':
-      if(flag(s,'CH2_ARRIVED')&&!flag(s,'CH2_DEREK_LOCKED')&&!flag(s,'CH2_DEREK_COMPLETE'))mark('CH2_DEREK_ACCEPTED','Derek at the Commons would appreciate a hand-delivered caramel macchiato. This is a personal favor.');break;
+      if(flag(s,'CH2_ARRIVED')&&!flag(s,'CH2_DEREK_LOCKED')&&!flag(s,'CH2_DEREK_COMPLETE'))mark('CH2_DEREK_ACCEPTED','Derek mentioned missing caramel macchiatos. The protesters have sworn off AI delivery apps.');break;
     case 'buy-coffee':
       if(!flag(s,'CH2_ARRIVED')||!Number.isFinite(s.credits)||s.credits<COFFEE_PRICE)break;
       n.credits-=COFFEE_PRICE;n.inventory.push(COFFEE_ITEM);changed=true;effects.push('coffee-bought');break;
@@ -257,16 +262,17 @@ export function conversation(rawId,s){
       'The hotel is south, near the terminal. Their competitors presumably sleep there too.'
     ],'radio-bargain');
   }
-  if(id==='hotel-clerk')return make([timeOfDay(s)==='night'?'Your room is ready. The night is yours until you choose to sleep.':'A room is yours for the chapter. The bed is upstairs, and a full rest is included.',flag(s,'CH2_RADIO_HUT_BARGAIN')&&!flag(s,'CH2_NIGHT_UNLOCKED')?'You look like someone with an exceptionally bad evening planned. I mean that professionally.':'Clean sheets, working plumbing, and the elevator has stopped offering life advice.']);
+  if(id==='hotel-clerk')return make([timeOfDay(s)==='night'?'Room 204 is yours. Take the stairs, then use your bed whenever you are ready to sleep.':'Your transit voucher covers room 204, upstairs. The other rooms are occupied. Make yourself comfortable in the common area.',flag(s,'CH2_RADIO_HUT_BARGAIN')&&!flag(s,'CH2_NIGHT_UNLOCKED')?'You look like someone with an exceptionally bad evening planned. I mean that professionally.':'Clean sheets, working plumbing, and a key that has never asked for a software update.']);
   if(id==='derek'){
     const status=derekStatus(s);
     if(status==='complete')return make(['A man of culture, and a reliable coffee service. Impressive range.','I am working on some anti-AI code. If our paths cross later, I will show you. Nothing you need to wait around for.']);
-    if(['expired','unavailable'].includes(status))return make(['Derek has left the immediate area as security tightens. His coffee request is no longer available.']);
+    if(['expired','unavailable'].includes(status))return make(['Derek has left as security tightens. No sign of the fellow who was talking about coffee.']);
     if(status==='accepted'&&s.inventory?.includes(COFFEE_ITEM))return make(['Caramel macchiato! Delivered by an actual person. Our principles taste surprisingly good.','Here, enough to cover it and a little extra. And I meant what I said about that sword.'], 'deliver-coffee');
-    if(status==='accepted')return make(['Coffee shop, one caramel macchiato, then back here. We agreed not to use robot delivery while protesting.','They stay open at night. The espresso machine apparently won the scheduling argument.']);
-    return make(['A vibrosword? Homemade? A man of culture. Finally, someone building the future for sufficiently silly reasons.','I write software. My employer keeps explaining that its next software will write me out of the budget. Hence the sign.','We agreed not to use AI deliveries. Could you bring me a caramel macchiato from the coffee shop? Only if you have time.'], 'derek-accept');
+    if(status==='accepted')return make(['I keep smelling caramel. It is probably the sign paint. This is what principles do to a person.','Common Grounds is all the way across town. My legs have voted to remain part of the protest.']);
+    return make(['A vibrosword? Homemade? A man of culture. Finally, someone building the future for sufficiently silly reasons.','I write software. My employer keeps explaining that its next software will write me out of the budget. Hence the sign.','Man, I wish I had a caramel macchiato. We all swore off those AI delivery apps while protesting, though. Excellent principles. Terrible afternoon for my caffeine habit.'], 'derek-accept');
   }
   if(id==='barista')return make([`Caramel macchiato, ${COFFEE_PRICE} credits. We are open through the night. Insomnia is our most dependable customer.`,derekStatus(s)==='expired'?'If the person you bought it for left, the coffee is still yours.':'Hand delivery? A bold return to legs.']);
+  if(id==='security-guard'&&flag(s,'CH2_SECURITY_RETRY_NEEDED'))return make(['There you are. The clinic does not cancel a recovery order.'],'security-retry');
   if(id==='security-guard')return flag(s,'CH2_PARK_SECURITY_ACTIVE')?make(['Routine security checks. Nothing more. Cooperate and it’ll be over in a second.','The overnight incident has expanded our investigation area. The drones are conducting identity checks.'],flag(s,'CH2_GUARD_EXPLANATION_HEARD')?null:'guard-heard'):make(['No investigation here. The construction equipment remains parked while the city reviews the permit.']);
   if(id==='protester'){
     if(flag(s,'CH2_CITY_SECURITY_HOSTILE'))return make(['We are staying with the trees. Those security units seem interested in you specifically. Please be careful.']);

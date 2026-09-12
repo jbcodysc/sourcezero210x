@@ -87,3 +87,11 @@ body[data-screen=start] #touch-controls,body[data-screen=cinematic] #touch-contr
 #erase-error{color:#ffc8ad}
 .equipment-slot{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #4a6967;font-size:13px}.equipment-slot>span{font:11px 'Space Mono',monospace;color:#9db8a6}.equipment-slot>b{font-weight:500;color:#e5d9b3}.equipment-slot button{width:auto;margin:0 0 0 auto;font-size:11px;padding:7px 12px}
 .equipment-slot>div{display:grid;gap:5px}.equipment-slot strong{font-weight:500;color:#e5d9b3}
+/* Battle narration is large enough to read, with a bounded box above commands. */
+.battle-ui .battle-log{left:4%;top:20%;width:39%;max-height:32%;overflow:auto;scrollbar-width:thin;padding:12px 15px;font-size:clamp(18px,3cqw,32px);line-height:1.25;pointer-events:auto}
+.battle-ui:not(.battle-finished) .battle-panel{top:auto;bottom:4%;left:4%;right:4%;width:auto;max-height:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.battle-ui .battle-panel-head,.battle-ui .battle-tip{display:none}
+.battle-ui .battle-action{margin:0;text-align:center}
+.battle-ui:not(.battle-finished) .hero-vitals{bottom:calc(4% + 84px)}
+.battle-ui:not(.battle-finished) .enemy-status{bottom:calc(4% + 86px)}
+@container(max-width:520px){.battle-ui .battle-log{top:20%;width:44%;font-size:clamp(13px,3.8cqw,20px);padding:6px 8px;max-height:36%}.battle-ui:not(.battle-finished) .hero-vitals{bottom:calc(4% + 62px)}.battle-ui:not(.battle-finished) .enemy-status{bottom:calc(4% + 65px)}}

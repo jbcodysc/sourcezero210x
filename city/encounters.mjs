@@ -1,5 +1,5 @@
 import {rollHealth} from '../lab/battle-rules.mjs';
-import {SANDWICH_HEAL,VEST_DEFENSE} from './progress.mjs';
+import {SANDWICH_HEAL,armorDefense,weaponBonus} from './progress.mjs';
 import {FAIRMONT_ENEMIES} from '../fairmont/enemies.mjs';
 export {rollHealth};
 export const MISS_RATE=.05,SILLY_RATE=.15,HELP_RATE=.05,ENEMY_DAMAGE_MULTIPLIER=1.3,MAX_ACTIVE_ENEMIES=3;
@@ -29,7 +29,7 @@ export function targetEnemy(b){return b.enemies.find(e=>e.uid===b.targetUid&&e.h
 export function selectTarget(b,uid){if(b.phase!=='command'||!b.enemies.some(e=>e.uid===uid&&e.hp>0))return false;b.targetUid=uid;return true;}
 export function encounterRewards(b){return b.enemies.filter(e=>e.hp<=0).reduce((r,e)=>({xp:r.xp+e.stats.xp,credits:r.credits+e.stats.credits}),{xp:0,credits:0});}
 export function createEncounter(id,progress,group=null){
- const foe=makeFoe(id,0),enemy=foe.stats,b={phase:'command',turn:1,hp:progress.hp,targetHp:progress.hp,maxHp:progress.maxHp,snacks:progress.snacks,guarding:false,lastAction:null,enemies:[foe],enemyQueue:[],targetUid:0,nextUid:1,enemy,id,heroAttack:31+(progress.level-1)*3+progress.upgrade*6,defense:(progress.level-1)*2+(progress.armor==='insulated-vest'?VEST_DEFENSE:0),message:enemy.opening.replace('subject: Alex.','subject: '+(progress.name||'Alex')+'.')};
+ const foe=makeFoe(id,0),enemy=foe.stats,b={phase:'command',turn:1,hp:progress.hp,targetHp:progress.hp,maxHp:progress.maxHp,snacks:progress.snacks,guarding:false,lastAction:null,enemies:[foe],enemyQueue:[],targetUid:0,nextUid:1,enemy,id,heroAttack:31+(progress.level-1)*3+weaponBonus(progress),defense:(progress.level-1)*2+armorDefense(progress),message:enemy.opening.replace('subject: Alex.','subject: '+(progress.name||'Alex')+'.')};
  if(group?.length){b.enemies=group.slice(0,MAX_ACTIVE_ENEMIES).map((kind,i)=>makeFoe(kind,i));b.nextUid=b.enemies.length;b.enemy=b.enemies[0].stats;}
  // The selected foe retains the existing HUD/test-facing health interface.
  for(const [key,field]of [['enemyHp','hp'],['enemyMaxHp','maxHp'],['charged','charged']])Object.defineProperty(b,key,{get:()=>targetEnemy(b)[field],set:v=>{targetEnemy(b)[field]=v;}});

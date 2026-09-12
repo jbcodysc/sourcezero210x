@@ -11,8 +11,8 @@ const hero = (level=10,snacks=4) => ({...freshProgress('Rowan'),level,xp:xpThres
 const sequence = (...values) => {let i=0;return ()=>values[Math.min(i++,values.length-1)];};
 
 test('the park encounter begins with exactly one guard and two drones', () => {
-  const battle=createEncounter('junctionGuard',hero(12),['junctionGuard','scanDrone','scanDrone']);
-  assert.deepEqual(battle.enemies.map(enemy=>enemy.id),['junctionGuard','scanDrone','scanDrone']);
+  const battle=createEncounter('junctionGuard',hero(12),['junctionGuard','scriptedScanDrone','scriptedScanDrone']);
+  assert.deepEqual(battle.enemies.map(enemy=>enemy.id),['junctionGuard','scriptedScanDrone','scriptedScanDrone']);
   assert.equal(new Set(battle.enemies.map(enemy=>enemy.uid)).size,3);
   assert.equal(battle.nextUid,3);
   playerAction(battle,'guard');
@@ -37,7 +37,7 @@ test('every Fairmont reinforcement belongs to its assigned Fairmont enemy type',
 });
 
 test('a replacement reinforcement gets its own target identity and rewards', () => {
-  const battle=createEncounter('junctionGuard',hero(),['junctionGuard','scanDrone','scanDrone']);
+  const battle=createEncounter('junctionGuard',hero(),['junctionGuard','scriptedScanDrone','scriptedScanDrone']);
   battle.enemies[1].hp=0;
   playerAction(battle,'guard');
   const result=enemyAction(battle,()=>.17);
@@ -46,7 +46,7 @@ test('a replacement reinforcement gets its own target identity and rewards', () 
   while(battle.phase==='resolving')enemyAction(battle,()=>.1);
   assert.ok(selectTarget(battle,3));
   assert.equal(selectTarget(battle,1),false);
-  assert.deepEqual(encounterRewards(battle),{xp:ENEMIES.scanDrone.xp,credits:ENEMIES.scanDrone.credits});
+  assert.deepEqual(encounterRewards(battle),{xp:ENEMIES.scriptedScanDrone.xp,credits:ENEMIES.scriptedScanDrone.credits});
 });
 
 test('the existing 5 percent misses, 15 percent silliness, 5 percent help and damage multiplier are retained', () => {
@@ -124,7 +124,8 @@ function chooseAction(battle) {
 }
 
 function simulate(id,level,snacks,seed,group=null) {
-  const battle=createEncounter(id,hero(level,snacks),group),random=seededRandom(seed);
+  const equipped={...hero(level,snacks),upgrade:2,armor:'laminate-vest'};
+  const battle=createEncounter(id,equipped,group),random=seededRandom(seed);
   let rounds=0;
   while(!['victory','defeat'].includes(battle.phase)&&rounds++<180) {
     const action=playerAction(battle,chooseAction(battle),random);
@@ -143,9 +144,9 @@ function simulate(id,level,snacks,seed,group=null) {
 test('representative level 10–20 battles complete under a bounded guard/healing strategy', t => {
   const cases=[
     ['retailCleaner',10,2],['retailSecurity',10,2],['karen',11,3],['karen',12,3],
-    ['junctionGuard',12,3,['junctionGuard','scanDrone','scanDrone']],
+    ['junctionGuard',12,3,['junctionGuard','scriptedScanDrone','scriptedScanDrone']],
     ['facilitySecurity',13,3],['assemblyArm',13,3],['heavyDrone',15,3],
-    ['argus',16,4],['argus',16,6],['argus',18,2],['argus',18,4],
+    ['argus',16,4],['argus',16,6],['argus',18,2],['argus',18,4],['argus',19,4],
     ['argus',20,0],['argus',20,2],['argus',20,4],['argus',20,6],
   ];
   for(const [id,level,snacks,group] of cases) {

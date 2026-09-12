@@ -23,6 +23,29 @@ function run(events,s=seed()){for(const event of events)s=transition(s,event).st
 function until(event,s=seed()){return run(sequence.slice(0,sequence.indexOf(event)+1),s);}
 function reload(s){return JSON.parse(JSON.stringify(s));}
 
+test('Derek mentions coffee casually without assigning a delivery errand',()=>{
+  const arrived=until('arrive'),first=conversation('derek',arrived);
+  assert.match(first.lines.map(l=>l.text).join(' '),/wish I had a caramel macchiato/);
+  assert.doesNotMatch(first.lines.map(l=>l.text).join(' '),/could you bring|bring me|get me/i);
+  const heard=transition(arrived,first.event).state;
+  assert.doesNotMatch(conversation('derek',heard).lines.map(l=>l.text).join(' '),/then back here|bring me|get me/i);
+  const purchased=transition({...heard,credits:100},'buy-coffee').state;
+  assert.equal(conversation('derek',purchased).event,'deliver-coffee');
+});
+
+test('losing the scripted attack leaves room to recover and consciously return for a retry',()=>{
+  const scanned=until('scan-finished');
+  const recovering=transition(scanned,'security-aborted').state;
+  assert.equal(resumeEvent(recovering),null);
+  assert.equal(conversation('security-guard',recovering).event,'security-retry');
+  const retry=transition(recovering,'security-retry');
+  assert.ok(retry.effects.includes('security-battle'));
+  assert.equal(resumeEvent(retry.state).type,'security-battle');
+  const won=transition(retry.state,'security-defeated').state;
+  assert.equal(won.flags.CH2_CITY_SECURITY_HOSTILE,true);
+  assert.equal(won.flags.CH2_SECURITY_RETRY_NEEDED,undefined);
+});
+
 test('Chapter 2 completes with Derek entirely absent; version and Chapter 1 history survive',()=>{
   const before=seed();let s=before;
   for(const event of sequence){const next=transition(s,event);assert.equal(next.changed,true,event);s=reload(next.state);}

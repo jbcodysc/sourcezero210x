@@ -6,9 +6,13 @@ A browser RPG built with Phaser 3.90.0. Explore Bellwether, investigate the cour
 
 Play at https://jbcodysc.github.io/sourcezero210x/.
 
-Chapter 2 begins at Bellwether’s southern bus route after the water regulator is restored. Existing Chapter 1 saves continue normally. Fairmont includes an explorable city, an optional coffee favor, a three-floor retail dungeon, and a five-zone active robotics facility. Its day/night changes are driven by the story and the hotel.
+Chapter 2 begins at Bellwether’s southern bus route after the water regulator is restored. You can also choose **Start at a chapter… → Fairmont Junction** in the main menu, select a save slot, and name your character. This creates a prepared level-10 save; replacing an occupied file requires confirmation.
 
-The opening uses the supplied lab-coat character art, changes to the injured-arm poses after the courier fight, and switches to normal clothes after the week jump. Mira uses her supplied sheet. Existing enemy artwork is preserved.
+Fairmont is an industrial city with a partially demolished park in its northwest corner. Both dungeons have independent rooms entered through doors: 18 rooms across Whole Robotics' three floors and 30 across the five-zone Cenexis facility. Sparse encounters use stronger Chapter 2 machines, with separate map and battle art. The two drones in the scripted park attack retain their weaker stats.
+
+The two-story Switchyard Hotel has a lobby, a guest corridor, and your private room 204. Inspect its bed to advance the nighttime story and again after the market to reach morning. A facility defeat sends you to the clinic; its return elevator unlocks beside the final boss only after victory. Bolt & Bracket sells a replacement weapon drive and upgraded vest.
+
+The opening uses the supplied lab-coat character art, changes to the injured-arm poses after the courier fight, and switches to normal clothes after the week jump. Mira uses her supplied sheet. Ten additional supplied sheets animate Fairmont's townspeople and park protesters. Chapter 1 enemy artwork and combat balance are preserved.
 
 - Walk: WASD or arrow keys.
 - Interact/confirm: Z, Enter, or Space.
@@ -23,7 +27,7 @@ In repository Settings → Pages, select **GitHub Actions** as the source. The i
 
 For development, run `node --test tests/*.test.mjs`. The deployment workflow runs these checks before publishing. They cover saved story gates, optional quest expiry, combat rules, sprite bounds, and reachable map interactions.
 
-Keep the city and lab folders beside each other: they share the game engine, character art, and battle modules. The root page opens the game with relative paths so it also works beneath a GitHub project path.
+Keep the city, lab and fairmont folders beside each other: they share the game engine, character art, and battle modules. The root page opens the game with relative paths so it also works beneath a GitHub project path.
 
 ## Local preview
 

@@ -12,8 +12,21 @@ export const FAIRMONT_PROP_FRAMES = {
 };
 export const FAIRMONT_CITIZEN_ROLES = ['shopkeeper','guard','worker','olderwoman','derek','protester'];
 export const FAIRMONT_GROUND_KEYS = ['fm-asphalt','fm-paving','fm-grass','fm-wood','fm-industrial','fm-retail'];
-const SOURCES = {'fairmont-buildings-raw':'fairmont-buildings.png','fairmont-props-raw':'fairmont-props.png','fairmont-citizens-raw':'fairmont-citizens.png','fairmont-bosses-raw':'fairmont-bosses.png','fairmont-ground-raw':'fairmont-ground.png','fairmont-bus-raw':'fairmont-bus.png','fairmont-machines-raw':'fairmont-machines.png'};
-const PROP_WIDTH = {tree:250,tent:208,crates:134,bench:166,console:108,shelf:218,server:106,droneDock:160,assemblyArm:220,fence:218,lamppost:54,sofa:220,desk:186,bed:140,plant:80,conveyor:260};
+// New sprites are paired views of the same six original machine designs.
+export const FAIRMONT_ENEMY_FRAMES = {
+ cleaner:{map:[197,101,147,130],battle:[480,50,381,190]},
+ 'stock-hauler':{map:[179,318,178,121],battle:[458,272,422,184]},
+ compliance:{map:[204,518,129,176],battle:[480,472,432,245]},
+ 'test-drone':{map:[188,769,171,135],battle:[465,741,428,190]},
+ 'heavy-drone':{map:[156,1000,213,146],battle:[445,952,475,243]},
+ 'assembly-arm':{map:[158,1260,194,168],battle:[451,1200,462,266]},
+};
+export const FAIRMONT_PARK_FRAMES = {
+ dirtMound:[0,103,393,405],uprootedStump:[394,103,368,402],fallenTree:[756,8,412,500],excavator:[1168,60,368,448],
+ brokenPath:[0,542,393,450],flowerbed:[397,542,389,444],parkBench:[788,619,366,346],fountain:[1155,511,381,487],
+};
+const SOURCES = {'fairmont-buildings-raw':'fairmont-buildings.png','fairmont-props-raw':'fairmont-props.png','fairmont-citizens-raw':'fairmont-citizens.png','fairmont-bosses-raw':'fairmont-bosses.png','fairmont-ground-raw':'fairmont-ground.png','fairmont-bus-raw':'fairmont-bus.png','fairmont-machines-raw':'fairmont-machines.png','fairmont-enemies-v2-raw':'fairmont-enemies-v2.png','fairmont-park-details-raw':'fairmont-park-details.png','fairmont-hotel-two-storey-raw':'fairmont-hotel-two-storey.png'};
+const PROP_WIDTH = {tree:250,tent:208,crates:134,bench:166,console:108,shelf:218,server:106,droneDock:160,assemblyArm:220,fence:218,lamppost:54,sofa:220,desk:186,bed:140,plant:80,conveyor:260,dirtMound:180,uprootedStump:130,fallenTree:310,excavator:300,brokenPath:240,flowerbed:160,parkBench:166,fountain:240};
 const ALIASES = {crate:'crates',robot:'droneDock',drone:'droneDock',shelves:'shelf',terminal:'console',computer:'console',arm:'assemblyArm',lamp:'lamppost',counter:'desk',locker:'server',couch:'sofa',barrier:'fence'};
 
 export function preloadFairmontArt(scene){
@@ -45,6 +58,18 @@ function keyedTexture(scene,sourceKey,targetKey,rect,baseWidth=1536,baseHeight=1
  return texture;
 }
 
+// Scene-lighting variants leave the generated source PNGs untouched. Bright midday
+// exteriors and the story's night overlay share exactly the same object silhouettes.
+function daylightTexture(scene,sourceKey,targetKey){
+ if(scene.textures.exists(targetKey))return;
+ const source=scene.textures.get(sourceKey).getSourceImage();
+ const canvas=document.createElement('canvas');canvas.width=source.width;canvas.height=source.height;
+ const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(source,0,0);
+ const pixels=context.getImageData(0,0,canvas.width,canvas.height),d=pixels.data;
+ for(let i=0;i<d.length;i+=4){if(!d[i+3])continue;d[i]=Math.min(255,d[i]*1.12+24);d[i+1]=Math.min(255,d[i+1]*1.15+27);d[i+2]=Math.min(255,d[i+2]*1.12+25);}
+ context.putImageData(pixels,0,0);scene.textures.addCanvas(targetKey,canvas).setFilter(0);
+}
+
 function prepareGroundTiles(scene){
  const source=scene.textures.get('fairmont-ground-raw').getSourceImage();
  const width=source.width/3,height=source.height/2,quarter=256;
@@ -60,14 +85,24 @@ function prepareGroundTiles(scene){
    context.restore();
   }
   const pixels=context.getImageData(0,0,canvas.width,canvas.height);
-  for(let a=3;a<pixels.data.length;a+=4)pixels.data[a]=255;
+  for(let a=0;a<pixels.data.length;a+=4){
+   // Outside materials need sunlit values, not the dark original atlas's ambience.
+   if(i<3){pixels.data[a]=Math.min(255,pixels.data[a]*1.18+28);pixels.data[a+1]=Math.min(255,pixels.data[a+1]*1.2+30);pixels.data[a+2]=Math.min(255,pixels.data[a+2]*1.16+28);}
+   pixels.data[a+3]=255;
+  }
   context.putImageData(pixels,0,0);scene.textures.addCanvas(key,canvas).setFilter(0);
  });
 }
 
 export function prepareFairmontArt(scene){
- for(const [name,rect]of Object.entries(FAIRMONT_BUILDING_FRAMES))keyedTexture(scene,'fairmont-buildings-raw','fairmont-building-'+name,rect);
+ for(const [name,rect]of Object.entries(FAIRMONT_BUILDING_FRAMES)){
+  keyedTexture(scene,'fairmont-buildings-raw','fairmont-building-'+name,rect);
+  daylightTexture(scene,'fairmont-building-'+name,'fairmont-building-'+name+'-day');
+ }
  for(const [name,rect]of Object.entries(FAIRMONT_PROP_FRAMES))keyedTexture(scene,'fairmont-props-raw','fairmont-prop-'+name,rect);
+ keyedTexture(scene,'fairmont-hotel-two-storey-raw','fairmont-hotel-two-storey',[0,0,1536,1024]);
+ for(const [name,rect]of Object.entries(FAIRMONT_PARK_FRAMES))keyedTexture(scene,'fairmont-park-details-raw','fairmont-prop-'+name,rect);
+ for(const [name,views]of Object.entries(FAIRMONT_ENEMY_FRAMES))for(const [view,rect]of Object.entries(views))keyedTexture(scene,'fairmont-enemies-v2-raw',`fairmont-enemy-${name}-${view}`,rect,1024,1536);
  FAIRMONT_CITIZEN_ROLES.forEach((name,i)=>keyedTexture(scene,'fairmont-citizens-raw','fairmont-citizen-'+name,[i*362,0,362,724],2172,724));
  keyedTexture(scene,'fairmont-bosses-raw','fairmont-karen',[42,101,600,908]);
  keyedTexture(scene,'fairmont-bosses-raw','fairmont-argus',[650,20,864,990]);
@@ -98,7 +133,8 @@ function buildingType(b){
 export function drawFairmontBuilding(scene,b,night=false){
  const type=buildingType(b),x=b.x+b.w/2,y=b.y+b.h;
  const container=scene.add.container(x,y).setDepth(y);
- const image=scene.add.image(0,0,'fairmont-building-'+type).setOrigin(.5,1);
+ const hotel=b.id==='hotel';
+ const image=scene.add.image(0,0,hotel?'fairmont-hotel-two-storey':'fairmont-building-'+type+(night?'':'-day')).setOrigin(.5,1);
  const scale=Math.min(b.w/image.width,b.h/image.height);image.setScale(scale);
  if(night)image.setTint(0xa1aac9);
  const shadow=scene.add.ellipse(8,-4,image.displayWidth*.96,32,0x16202c,night?.45:.24);
@@ -106,7 +142,7 @@ export function drawFairmontBuilding(scene,b,night=false){
  // Signs are mounted on business facades; residences deliberately remain unsigned.
  if(type!=='apartment'&&b.name){
   const levels={hotel:.238,radio:.275,market:.262,cafe:.276,warehouse:.466,facility:.322,terminal:.379};
-  const panelY=-image.displayHeight*(levels[type]||.27);
+  const panelY=-image.displayHeight*(hotel?.455:(levels[type]||.27));
   const panelWidth=Math.min(image.displayWidth*.65,Math.max(96,b.name.length*9));
   const plate=scene.add.rectangle(0,panelY,panelWidth,28,night?0x192c3b:0x233a42,1).setStrokeStyle(2,0xb99664);
   const name=scene.add.text(0,panelY,String(b.shortName||b.name).toUpperCase(),{fontFamily:'monospace',fontSize:'15px',fontStyle:'bold',color:night?'#ffe8a8':'#f6e3b9',align:'center'}).setOrigin(.5);
@@ -117,7 +153,7 @@ export function drawFairmontBuilding(scene,b,night=false){
 }
 
 export function drawFairmontProp(scene,type,x,y,scale=1){
- type=ALIASES[type]||type;if(!FAIRMONT_PROP_FRAMES[type])type='crates';
+ type=ALIASES[type]||type;if(!FAIRMONT_PROP_FRAMES[type]&&!FAIRMONT_PARK_FRAMES[type])type='crates';
  const image=scene.add.image(x,y,'fairmont-prop-'+type).setOrigin(.5,1);
  image.setScale((PROP_WIDTH[type]||140)*scale/image.width).setDepth(y);
  return image;
