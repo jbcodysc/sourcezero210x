@@ -67,7 +67,7 @@ test('reload at flight skips alarm lead-in; reload after landing never replays b
 
 test('entry and browser restoration select exploration, entrance and combat music without crossing their boundaries',()=>{
  assert.equal(explorationMusicMode({map:{isMarket:false}}),'factory');assert.equal(explorationMusicMode({map:{isMarket:true}}),'dungeon');
- assert.equal(explorationMusicMode({location:'water'}),'dungeon');assert.equal(explorationMusicMode({location:'fairmont'}),'city');
+ assert.equal(explorationMusicMode({location:'water'}),'dungeon');assert.equal(explorationMusicMode({location:'fairmont'}),'fairmont-city');
  assert.equal(explorationMusicMode({map:{isMarket:false},argusEntrance:{}}),'argus-entrance');
  assert.equal(combatMusicMode({transition:{},battle:{id:'argus',phase:'command'}}),'transition');
  assert.equal(combatMusicMode({battle:{id:'argus',phase:'command'}}),'argus-battle');

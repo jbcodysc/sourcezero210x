@@ -1,0 +1,103 @@
+{
+  "source_sha256": "0c42afed960306383b87ab4ad3ed11d16ca1e95ed6709cdfe62932b7c9a9c436",
+  "duration": 152.1950566893424,
+  "sample_rate": 44100,
+  "bpm": 82,
+  "bars": 52,
+  "markers": {
+    "LOOP_START": 0,
+    "INTRO": 0,
+    "A_MAIN": 11520,
+    "B_VARIATION": 34560,
+    "BREAKDOWN": 53760,
+    "A_RETURN": 69120,
+    "OUTRO": 92160,
+    "LOOP_END": 99840
+  },
+  "ppq": 480,
+  "peak": 0.83,
+  "rms": 0.1510904757443688,
+  "seam_delta": [
+    0,
+    0
+  ],
+  "percussion": {
+    "36": {
+      "sound": "soft low reinforcement",
+      "hits": 104
+    },
+    "41": {
+      "sound": "machine press / piston",
+      "hits": 104
+    },
+    "53": {
+      "sound": "light steel strike",
+      "hits": 52
+    },
+    "68": {
+      "sound": "pipe clank",
+      "hits": 52
+    },
+    "77": {
+      "sound": "gear click",
+      "hits": 62
+    },
+    "76": {
+      "sound": "relay click",
+      "hits": 60
+    },
+    "58": {
+      "sound": "pneumatic release",
+      "hits": 6
+    },
+    "56": {
+      "sound": "pipe strike",
+      "hits": 3
+    },
+    "51": {
+      "sound": "distant metal resonance",
+      "hits": 3
+    },
+    "42": {
+      "sound": "muted metallic hi-hat",
+      "hits": 88
+    }
+  },
+  "tracks": [
+    {
+      "name": "Warm Synth Pad",
+      "program": 89,
+      "notes": 229
+    },
+    {
+      "name": "Soft Electric Piano",
+      "program": 4,
+      "notes": 203
+    },
+    {
+      "name": "Bell / Mallet Lead",
+      "program": 11,
+      "notes": 117
+    },
+    {
+      "name": "Subdued Synth Bass",
+      "program": 38,
+      "notes": 100
+    },
+    {
+      "name": "Mechanical Arpeggio",
+      "program": 12,
+      "notes": 176
+    },
+    {
+      "name": "Atmospheric Machine Hum",
+      "program": 99,
+      "notes": 78
+    },
+    {
+      "name": "Industrial Percussion",
+      "program": 0,
+      "notes": 534
+    }
+  ]
+}

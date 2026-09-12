@@ -8,6 +8,7 @@ export class CityAudio {
   this.enabled=true;this.context=null;this.effects={};this.effectLoads={};this.lastLetter=0;this.onChange=onChange;this.mode='title';this.visible=true;this.playingEffects=new Set();this.requestedLoops=new Set();
   const options={contextFactory:()=>this.getContext(),onError:()=>this.onChange(),onReady:()=>{if(this.menu?.gain)this.menu.gain.gain.value=.5;this.onChange();}};
   this.town=new BattleMusic(new URL('./assets/town.wav',import.meta.url).href,{...options,resumeOnStart:true});
+  this.fairmontTown=new BattleMusic(new URL('./assets/fairmont-junction-industrial-town.wav',import.meta.url).href,{...options,resumeOnStart:true});
   this.battle=new BattleMusic(new URL('../lab/assets/robot-in-the-reagent-room.wav',import.meta.url).href,options);
   this.water=new BattleMusic(new URL('./assets/fountain.wav',import.meta.url).href,options);
   this.menu=new BattleMusic(new URL('./assets/name-select.wav',import.meta.url).href,options);
@@ -16,7 +17,7 @@ export class CityAudio {
   this.argus=new BattleMusic(new URL('./assets/ch2_argus_battle_theme.wav',import.meta.url).href,options);
   this.waterDistance=Infinity;
  }
- get tracks(){return [this.town,this.battle,this.water,this.menu,this.dungeon,this.factory,this.argus];}
+ get tracks(){return [this.town,this.fairmontTown,this.battle,this.water,this.menu,this.dungeon,this.factory,this.argus];}
  get failed(){return this.tracks.some(t=>t.failed)||this.effectFailed;}
  getContext(){if(!this.context||this.context.state==='closed')this.context=new (globalThis.AudioContext||globalThis.webkitAudioContext)();return this.context;}
  unlock(retry=false){
@@ -30,8 +31,8 @@ export class CityAudio {
   this.mode=mode;
   // Stop all nonselected sources before starting the new one. In particular,
   // the entrance has no music and the boss never shares a source with its factory.
-  const selected=mode==='dungeon'?this.dungeon:mode==='factory'?this.factory:mode==='argus-battle'?this.argus:mode==='battle'?this.battle:mode==='menu'?this.menu:mode==='city'||mode==='interior'?this.town:null;
-  for(const track of this.tracks)if(track!==selected&&(track!==this.water||mode!=='city'))track.stop();
+  const selected=mode==='fairmont-city'||mode==='fairmont-interior'?this.fairmontTown:mode==='dungeon'?this.dungeon:mode==='factory'?this.factory:mode==='argus-battle'?this.argus:mode==='battle'?this.battle:mode==='menu'?this.menu:mode==='city'||mode==='interior'?this.town:null;
+  for(const track of this.tracks)if(track!==selected&&(track!==this.water||!['city','fairmont-city'].includes(mode)))track.stop();
   selected?.start();if(selected===this.menu&&this.menu.gain)this.menu.gain.gain.value=.5;
   if(mode!=='transition')this.stopEffects('fanfare');if(mode!=='victory')this.stopEffects('victory');
   if(mode!=='argus-entrance')for(const key of ENTRANCE_EFFECTS)this.stopEffects(key);
@@ -39,7 +40,7 @@ export class CityAudio {
  setEnabled(enabled){this.enabled=enabled;for(const track of this.tracks)track.setEnabled(enabled);if(!enabled)this.silenceEffects();else this.resumeLoops();this.onChange();}
  setVisible(visible){this.visible=visible;for(const track of this.tracks)track.setVisible(visible);if(!visible)this.silenceEffects();else this.resumeLoops();}
  resumeLoops(){if(this.mode==='argus-entrance'&&this.enabled&&this.visible)for(const key of this.requestedLoops)this.effect(key);}
- fountain(distance){this.waterDistance=distance;const volume=fountainVolume(distance);if(this.mode==='city'&&volume>.001){this.water.start();if(this.water.gain)this.water.gain.gain.setTargetAtTime(volume,this.context.currentTime,.12);}else this.water.stop();}
+ fountain(distance){this.waterDistance=distance;const volume=fountainVolume(distance);if(['city','fairmont-city'].includes(this.mode)&&volume>.001){this.water.start();if(this.water.gain)this.water.gain.gain.setTargetAtTime(volume,this.context.currentTime,.12);}else this.water.stop();}
  effect(key){
   if((ENTRANCE_EFFECTS.has(key)&&this.mode!=='argus-entrance')||(key==='fanfare'&&this.mode!=='transition')||(key==='victory'&&this.mode!=='victory'))return;
   if(LOOP_EFFECTS.has(key))this.requestedLoops.add(key);
