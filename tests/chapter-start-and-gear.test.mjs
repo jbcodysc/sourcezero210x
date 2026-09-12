@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {CHAPTERS,createChapterProgress} from '../city/chapter-start.mjs';
-import {freshProgress,GEAR,buy,buyGear,equipArmor,armorDefense,weaponBonus,validProgress,restore} from '../city/progress.mjs';
+import {freshProgress,GEAR,buy,buyGear,equipArmor,armorDefense,weaponBonus,playerStats,xpThreshold,validProgress,restore} from '../city/progress.mjs';
 import {SaveSlots} from '../city/save-slots.mjs';
 import {resumeEvent,timeOfDay,transition} from '../fairmont/story.mjs';
 import {createEncounter,ENEMIES} from '../city/encounters.mjs';
@@ -14,7 +14,9 @@ const storage=()=>{const values=new Map();return {getItem:key=>values.get(key)||
 
 test('Chapter 2 begins at the daytime bus arrival with complete Chapter 1 prerequisites, not a later event',()=>{
  const s=createChapterProgress(2,'Finley');
- assert.ok(validProgress(s));assert.equal(s.level,10);assert.equal(s.hp,s.maxHp);assert.equal(s.location,'fairmont');
+ assert.ok(validProgress(s));assert.equal(s.level,15);assert.equal(s.xp,xpThreshold(15));assert.equal(s.hp,s.maxHp);assert.equal(s.location,'fairmont');
+ assert.equal(s.credits,2000);assert.deepEqual(playerStats(s),{health:278,attack:79,defense:33});
+ assert.deepEqual(s.inventory,['insulated-vest']);assert.equal(s.snacks,2);
  assert.equal(timeOfDay(s),'day');assert.equal(resumeEvent(s),null);assert.equal(s.flags.CH2_ARRIVED,true);
  assert.equal(s.flags.CH2_MODULE_REMINDER_SEEN,undefined);assert.equal(s.flags.CH2_RADIO_HUT_BARGAIN,undefined);
  for(const flag of ['waterRestored','relayTaken','badgeFixed'])assert.equal(s.flags[flag],true);
@@ -27,7 +29,7 @@ test('chapter selection and upgraded gear survive reload without awarding Chapte
  const memory=storage(),book=new SaveSlots(memory),start=createChapterProgress(2,'Terry');
  book.write(0,freshProgress('First'));book.write(2,freshProgress('Third'));
  buyGear(start,'resonant-drive');buyGear(start,'laminate-vest');book.write(1,start);
- const loaded=new SaveSlots(memory);assert.equal(loaded.read(1).xp,start.xp);assert.equal(loaded.read(1).level,10);
+ const loaded=new SaveSlots(memory);assert.equal(loaded.read(1).xp,start.xp);assert.equal(loaded.read(1).level,15);
  assert.equal(loaded.read(1).upgrade,2);assert.equal(loaded.read(1).armor,'laminate-vest');
  assert.equal(loaded.read(0).name,'First');assert.equal(loaded.read(2).name,'Third');
  assert.deepEqual(loaded.read(1).inventory,start.inventory);
@@ -75,7 +77,7 @@ test('the actual start menu requires an overwrite confirmation and validated nam
  scene.handleAction('chapter-slot-0');scene.handleAction('chapter-replace');assert.equal(scene.phase,'name');
  node('#hero-name').value='Ness';scene.handleAction('name-check');assert.equal(scene.phase,'name-rejected');assert.equal(launched,undefined);
  scene.handleAction('name-dismiss');node('#hero-name').value='Jamie';scene.handleAction('name-check');assert.equal(scene.phase,'confirm');
- scene.handleAction('name-start');assert.equal(launched.name,'Jamie');assert.equal(launched.location,'fairmont');assert.equal(launched.level,10);
+ scene.handleAction('name-start');assert.equal(launched.name,'Jamie');assert.equal(launched.location,'fairmont');assert.equal(launched.level,15);assert.equal(launched.credits,2000);
  assert.equal(book.read(0).name,'Existing','only launch is allowed to write the chosen file');
 });
 

@@ -116,7 +116,7 @@ test('only the defeated final boss releases the facility return elevator and str
 test('hotel has a public lobby, upstairs corridor and only one accessible guest bedroom',()=>{
  const lobby=hotelMapFor(HOTEL.lobby),hall=hotelMapFor(HOTEL.hall),bedroom=hotelMapFor(HOTEL.bedroom);
  assert.equal(BUILDINGS.find(b=>b.id==='hotel').stories,2);
- assert.equal(lobby.kind,'lobby');assert.equal(lobby.bed,null);assert.ok(lobby.clerk);assert.ok(lobby.props.some(p=>p.type==='sofa'));assert.ok(interiorDesignFor(lobby.id).details.some(p=>p.type==='reception'));
+ assert.equal(lobby.kind,'lobby');assert.equal(lobby.bed,null);assert.ok(lobby.clerk);assert.ok(lobby.props.some(p=>p.type==='sofa'));assert.ok(interiorDesignFor(lobby.id).props.some(p=>p.type==='public-hotel-reception'));
  assert.ok(lobby.doors.some(d=>d.target===HOTEL.hall&&d.stairs));
  assert.equal(hall.lockedDoors.length,4);assert.equal(hall.doors.filter(d=>d.target.startsWith('fairmont-hotel-room-')).length,1);assert.equal(hall.bed,null);
  assert.ok(bedroom.bed);assert.equal(bedroom.doors[0].target,HOTEL.hall);
@@ -129,7 +129,7 @@ test('the northwest commons is separate from industry and coffee is across town'
  assert.ok(PARK_DETAILS.intact.x>=PARK.x+PARK.w/2-40);
  assert.ok(PARK_DETAILS.dirtPiles.length>=3&&PARK_DETAILS.fallenTrees.length>=2);
  assert.ok(PARK_DETAILS.benches.length>=2&&PARK_DETAILS.fountain&&PARK_DETAILS.trees.length>=3);
- const coffee=BUILDINGS.find(b=>b.id==='cafe');assert.ok(Math.hypot(coffee.door.x-PARK_DETAILS.npcs.derek.x,coffee.door.y-PARK_DETAILS.npcs.derek.y)>3000);
+ const coffee=BUILDINGS.find(b=>b.id==='cafe');assert.ok(Math.hypot(coffee.door.x-PARK_DETAILS.npcs.derek.x,coffee.door.y-PARK_DETAILS.npcs.derek.y)>2500);
  assert.ok(ROADS.verticalStarts[750]>PARK.y+PARK.h);
  const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
  for(const b of BUILDINGS)assert.equal(overlap(b,PARK),false,b.id+' overlaps the park');

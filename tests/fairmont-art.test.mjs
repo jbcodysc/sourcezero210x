@@ -3,6 +3,18 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {CITIZEN_SHEETS,selectCitizenFrame,createCitizenActor,drawCitizenActor} from '../fairmont/citizen-sheets.mjs';
 import {FAIRMONT_ENEMY_FRAMES,FAIRMONT_PARK_FRAMES} from '../fairmont/art.mjs';
+import {INTERIOR_ART} from '../fairmont/interior-art.mjs';
+
+test('illustrated interior objects have actual standalone RGBA assets',()=>{
+ assert.equal(Object.keys(INTERIOR_ART).length,13);
+ for(const [type,art]of Object.entries(INTERIOR_ART)){
+  const png=readFileSync(new URL('../fairmont/assets/interior-v2/'+art.file,import.meta.url));
+  assert.equal(png.toString('hex',0,8),'89504e470d0a1a0a',type);
+  assert.equal(png[25],6,type+' must preserve its RGBA cutout');
+  assert.ok(png.readUInt32BE(16)>=1000&&png.readUInt32BE(20)>=1000,type+' needs a detailed source');
+  assert.ok(art.width>=100&&art.width<=390,type+' must fit human-scale rooms');
+ }
+});
 
 test('all ten supplied citizens have sixteen separate, valid source poses',()=>{
  assert.equal(Object.keys(CITIZEN_SHEETS).length,10);

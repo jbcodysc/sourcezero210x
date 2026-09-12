@@ -1,6 +1,7 @@
 // Original Fairmont assets. The raw atlases use a magenta matte, removed once at load.
 // World geometry belongs to the map; these helpers only draw individual objects.
 import {buildingType,buildingGeometry,rearServiceEntrance} from './building-geometry.mjs';
+import {INTERIOR_ART,preloadInteriorArt,prepareInteriorArt,drawInteriorSprite} from './interior-art.mjs';
 export const FAIRMONT_BUILDING_FRAMES = {
  hotel:[16,48,364,491],radio:[400,122,338,416],market:[744,44,442,492],cafe:[1190,125,328,414],
  apartment:[15,570,315,377],warehouse:[350,590,365,357],facility:[737,542,451,405],terminal:[1199,633,325,311]
@@ -31,6 +32,7 @@ const PROP_WIDTH = {tree:250,tent:208,crates:134,bench:166,console:108,shelf:218
 const ALIASES = {crate:'crates',robot:'droneDock',drone:'droneDock',shelves:'shelf',terminal:'console',computer:'console',arm:'assemblyArm',lamp:'lamppost',counter:'desk',locker:'server',couch:'sofa',barrier:'fence'};
 
 export function preloadFairmontArt(scene){
+ preloadInteriorArt(scene);
  for(const [key,file] of Object.entries(SOURCES)) if(!scene.textures.exists(key)) scene.load.image(key,new URL('./assets/'+file,import.meta.url).href);
 }
 
@@ -96,6 +98,7 @@ function prepareGroundTiles(scene){
 }
 
 export function prepareFairmontArt(scene){
+ prepareInteriorArt(scene);
  for(const [name,rect]of Object.entries(FAIRMONT_BUILDING_FRAMES)){
   keyedTexture(scene,'fairmont-buildings-raw','fairmont-building-'+name,rect);
   daylightTexture(scene,'fairmont-building-'+name,'fairmont-building-'+name+'-day');
@@ -157,6 +160,7 @@ export function drawFairmontServiceEntrance(scene,b,night=false){
 }
 
 export function drawFairmontProp(scene,type,x,y,scale=1){
+ if(INTERIOR_ART[type])return drawInteriorSprite(scene,type,x,y,INTERIOR_ART[type].width*scale);
  type=ALIASES[type]||type;if(!FAIRMONT_PROP_FRAMES[type]&&!FAIRMONT_PARK_FRAMES[type])type='crates';
  const image=scene.add.image(x,y,'fairmont-prop-'+type).setOrigin(.5,1);
  image.setScale((PROP_WIDTH[type]||140)*scale/image.width).setDepth(y);

@@ -1,4 +1,6 @@
-import {CITY,ROADS,PARK,PARK_DETAILS,ARRIVAL,BUILDINGS,INTERIORS,MARKET_FLOORS,FACILITY_ZONES,HOTEL,mapFor,hotelMapFor,canonicalLocation,retireRoomSpawns,worldWalkable,nearestWalkable,citySpawns,spawnEvents,markDefeated,chaseWaypoint,rearServiceEntrance} from './world.mjs';
+import {CITY,ROADS,PARK,PARK_DETAILS,ARRIVAL,BUILDINGS,CITY_NPC_POINTS,CITY_FIXTURES,INTERIORS,MARKET_FLOORS,FACILITY_ZONES,HOTEL,mapFor,hotelMapFor,canonicalLocation,retireRoomSpawns,worldWalkable,nearestWalkable,citySpawns,spawnEvents,markDefeated,chaseWaypoint,rearServiceEntrance} from './world.mjs';
+import {buildingGeometry} from './building-geometry.mjs';
+import {migrateCompactCityLayout} from './city-density.mjs';
 import * as story from './story.mjs';
 import {preloadFairmontArt,prepareFairmontArt,drawFairmontBuilding,drawFairmontServiceEntrance,drawFairmontProp,createFairmontCitizen,drawFairmontBus} from './art.mjs';
 import {interiorDesignFor,drawInteriorDetails} from './interior-design.mjs';
@@ -44,7 +46,7 @@ export function createFairmontScene(api){
  const drawActor=(a,delta)=>a.fairmontCitizen?drawCitizenActor(a,delta):drawBaseActor(a,delta);
  return class FairmontScene extends Base {
   constructor(){super('Fairmont');}
-  init(data){super.init(data);this.location=canonicalLocation(data?.location||'fairmont');this.entry=data?.position||ARRIVAL;this.map=mapFor(this.location);this.hotel=hotelMapFor(this.location);this.floor=null;this.obstacles=[];this.scanGraphic=null;this.visuals=[];this.cinematicStep=0;}
+  init(data){super.init(data);const p=getProgress();this.location=canonicalLocation(data?.location||'fairmont');this.entry=migrateCompactCityLayout(p,this.location,data?.position||(p.location===this.location?p.position:ARRIVAL));this.map=mapFor(this.location);this.hotel=hotelMapFor(this.location);this.floor=null;this.obstacles=[];this.scanGraphic=null;this.visuals=[];this.cinematicStep=0;}
   preload(){super.preload();preloadFairmontArt(this);loadCitizenSheets(this);}
   create(){
    const p=getProgress();state.scene=this;prepareArt(this);prepareWaterArt(this);prepareFairmontArt(this);prepareCitizenSheets(this);resetControls();screenMode('game');$('#loading').hidden=true;
@@ -84,31 +86,32 @@ export function createFairmontScene(api){
    this.add.tileSprite(0,0,CITY.width,CITY.height,'fm-paving').setOrigin(0).setDepth(-30).setTint(this.night?0x526982:0xffffff);
    for(const y of ROADS.horizontal){this.add.tileSprite(0,y,CITY.width,320,'fm-paving').setOrigin(0,.5).setDepth(-29).setTint(this.night?0x73849c:0xffffff);this.add.tileSprite(0,y,CITY.width,190,'fm-asphalt').setOrigin(0,.5).setDepth(-28).setTint(this.night?0x697993:0xffffff);}
    for(const x of ROADS.vertical){const start=ROADS.verticalStarts?.[x]||0;this.add.tileSprite(x,start,320,CITY.height-start,'fm-paving').setOrigin(.5,0).setDepth(-29).setTint(this.night?0x73849c:0xffffff);this.add.tileSprite(x,start,190,CITY.height-start,'fm-asphalt').setOrigin(.5,0).setDepth(-28).setTint(this.night?0x697993:0xffffff);}
-   for(const b of BUILDINGS)this.add.tileSprite(b.x-20,b.y+b.h-10,b.w+40,100,'fm-paving').setOrigin(0).setDepth(-29).setTint(this.night?0x73849c:0xffffff);
+   for(const b of BUILDINGS){const f=buildingGeometry(b).facade;this.add.tileSprite(f.x-20,f.y+f.h-10,f.w+40,100,'fm-paving').setOrigin(0).setDepth(-29).setTint(this.night?0x73849c:0xffffff);}
    g.fillStyle(0xddc989,.7);for(const y of ROADS.horizontal)for(let x=30;x<CITY.width;x+=125)if(!ROADS.vertical.some(v=>Math.abs(v-x)<170))g.fillRect(x,y-3,50,6);
    g.fillStyle(0xe6e3ce,.65);for(const x of ROADS.vertical)for(const y of ROADS.horizontal)for(let i=-3;i<=3;i++){g.fillRect(x+i*22,y-142,11,35);g.fillRect(x-142,y+i*22,35,11);}
    this.createPark();
    // Loading aprons, conduit runs and stacked freight replace suburban lawns.
    for(const b of BUILDINGS.filter(b=>['warehouse','facility','market'].includes(b.type))){
-    g.lineStyle(8,this.night?0x586c7a:0x84969b,.8);g.lineBetween(b.x+20,b.y+b.h+96,b.x+b.w-20,b.y+b.h+96);
-    for(let x=b.x+28;x<b.x+b.w-45;x+=95){g.lineStyle(5,0xd2ae55,.7);g.lineBetween(x,b.y+b.h+112,x+30,b.y+b.h+137);}
+    const f=buildingGeometry(b).facade,y=f.y+f.h;
+    g.lineStyle(8,this.night?0x586c7a:0x84969b,.8);g.lineBetween(f.x+20,y+50,f.x+f.w-20,y+50);
+    for(let x=f.x+28;x<f.x+f.w-45;x+=95){g.lineStyle(5,0xd2ae55,.7);g.lineBetween(x,y+61,x+30,y+78);}
    }
    for(const b of BUILDINGS){this.occlusionObjects.push({sprite:drawFairmontBuilding(this,b,this.night),kind:'building'});if(b.enter)this.interactables.push({...b.door,id:'door-'+b.id,name:'Enter '+b.name,kind:'building',building:b,range:145});}
    const market=BUILDINGS.find(b=>b.id==='market');drawFairmontServiceEntrance(this,market,this.night);this.interactables.push({...rearServiceEntrance(market),id:'market-rear',name:'Examine the rear service entrance',kind:'market-rear',range:110});
    const facility=BUILDINGS.find(b=>b.id==='facility');drawFairmontServiceEntrance(this,facility,this.night);this.interactables.push({...rearServiceEntrance(facility),id:'facility-rear',name:'Cenexis employee access',kind:'facility-rear',range:110});
-   if(p.flags.CH2_WRM_CLEARED){this.label(market.x+market.w/2,market.y+market.h-80,'CLOSED · INVESTIGATION IN PROGRESS',21,'#f6b66c');for(let i=0;i<5;i++)this.add.rectangle(market.x+80+i*200,market.y+market.h+4,170,12,0xe8bb4c).setAngle(-5).setDepth(market.y+market.h+10);}
+   if(p.flags.CH2_WRM_CLEARED){const f=buildingGeometry(market).facade,y=f.y+f.h;this.label(f.x+f.w/2,y-80,'CLOSED · INVESTIGATION IN PROGRESS',18,'#f6b66c');for(let i=0;i<4;i++)this.add.rectangle(f.x+f.w*(i+.5)/4,y+4,f.w*.21,12,0xe8bb4c).setAngle(-5).setDepth(y+10);}
    for(let i=0;i<streetNPCs.length;i++){
-    const [id,name,oldX,oldY,row,text]=streetNPCs[i],{x,y}=PARK_DETAILS.npcs[id]||{x:oldX,y:oldY};
+    const [id,name,oldX,oldY,row,text]=streetNPCs[i],{x,y}=PARK_DETAILS.npcs[id]||CITY_NPC_POINTS[id]||{x:oldX,y:oldY};
     if(id==='derek'&&p.flags.CH2_DEREK_LOCKED)continue;
     if(this.night&&!['derek','protester','camper','organizer','commuter'].includes(id))continue;
     const news=p.flags.CH2_DAY2&&['commuter','shopper','neighbor'].includes(id)?story.FLAVOR.day2[i%story.FLAVOR.day2.length]+' '+text:text;
     this.addCitizen(id,name,x,y,row,news,id==='derek'||id==='protester');
    }
    if(p.flags.CH2_PARK_SECURITY_ACTIVE){this.addCitizen('security-guard','Contract Security',PARK_DETAILS.guard.x,PARK_DETAILS.guard.y,0,null,true);for(const {x,y}of PARK_DETAILS.drones){const drone=this.drone(x,y,105);this.tweens.add({targets:drone,y:y-12,duration:1300,yoyo:true,repeat:-1});}}
-   for(const y of [1100,2100,3400,4200])for(const x of [600,3450,4500]){this.prop('lamppost',x,y-140,1.3);if(this.night)this.add.circle(x,y-260,96,0xffd082,.09).setDepth(y-140);}
+   for(const {x,y}of CITY_FIXTURES.lamps){this.prop('lamppost',x,y,1.3);if(this.night)this.add.circle(x,y-120,96,0xffd082,.09).setDepth(y);}
    // Quiet, deterministic service traffic stays neutral in every story state.
-   drawFairmontBus(this,545,4300,365,this.night);
-   this.interactables.push({x:560,y:4360,id:'bus-return',name:'Check the departure board',kind:'flavor',text:p.flags.CH2_COMPLETE?'NORTHBRIDGE — NEXT REGIONAL DEPARTURE. Your lead, and an old friend, are waiting there.':'Northbridge departures are on the regional platform. The trail in Fairmont is still unfinished.',range:150});
+   const bus=CITY_FIXTURES.bus;drawFairmontBus(this,bus.x,bus.y,bus.width,this.night);
+   this.interactables.push({...CITY_FIXTURES.departureBoard,id:'bus-return',name:'Check the departure board',kind:'flavor',text:p.flags.CH2_COMPLETE?'NORTHBRIDGE — NEXT REGIONAL DEPARTURE. Your lead, and an old friend, are waiting there.':'Northbridge departures are on the regional platform. The trail in Fairmont is still unfinished.',range:150});
    this.slots=state.fairmontSlots?.fairmont||citySpawns();(state.fairmontSlots||={}).fairmont=this.slots;
    for(const s of this.slots)if(s.enemy&&p.flags.CH2_CITY_SECURITY_HOSTILE)this.addPatrol(s);
   }
@@ -143,10 +146,10 @@ export function createFairmontScene(api){
   }
   createInterior(){
    const id=this.roomId,g=this.add.graphics().setDepth(-30);g.fillStyle(this.night?0x172134:0x263344);g.fillRect(0,0,1536,1024);g.fillStyle(this.night?0x705342:0x92735a);g.fillRect(120,300,1290,660);
-   this.add.tileSprite(135,350,1260,595,'fm-wood').setOrigin(0).setDepth(-29).setTint(this.night?0x8d91ad:0xffffff);
+   this.add.tileSprite(135,350,1260,595,id==='clinic'?'fm-retail':id==='gear'?'fm-industrial':'fm-wood').setOrigin(0).setDepth(-29).setTint(this.night?0x8d91ad:0xffffff);
    for(let y=320;y<960;y+=42){g.lineStyle(2,0x322c36,.5);g.lineBetween(125,y,1410,y);for(let x=130+(y%84?90:0);x<1400;x+=185)g.lineBetween(x,y,x,y+42);}
-   g.fillStyle(this.night?0x47414d:0xbaa68d);g.fillRect(120,120,1290,230);g.lineStyle(15,0x3a3946);g.strokeRect(120,120,1290,835);
-   for(const x of [370,1040]){g.fillStyle(0x403646);g.fillRect(x,170,230,145);g.fillStyle(this.night?0x182947:0x8ba6b5);g.fillRect(x+10,180,210,125);g.lineStyle(9,0x555266);g.lineBetween(x+115,180,x+115,305);}
+   g.fillStyle(id==='clinic'?(this.night?0x687d7d:0xd4e3d8):(this.night?0x47414d:0xbaa68d));g.fillRect(120,120,1290,230);g.lineStyle(15,id==='clinic'?0x617b78:0x3a3946);g.strokeRect(120,120,1290,835);
+   for(const x of (id==='clinic'?[370]:[370,1040])){g.fillStyle(0x403646);g.fillRect(x,170,230,145);g.fillStyle(this.night?0x182947:0x8ba6b5);g.fillRect(x+10,180,210,125);g.lineStyle(9,0x555266);g.lineBetween(x+115,180,x+115,305);}
    const design=this.furnishInterior();
    const npc=interiorNPC[id],service=design.service||{x:850,y:570};if(npc)this.addCitizen(...npc.slice(0,2),service.x,service.y,npc[2],null,true);
    this.label(770,130,this.building?.name||'FAIRMONT',27);this.label(768,951,'↓ STREET',18);this.interactables.push({x:770,y:930,kind:'exit',id:'exit',name:'Return to the street',range:95});

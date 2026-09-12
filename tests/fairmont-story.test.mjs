@@ -35,6 +35,22 @@ test('Derek mentions coffee casually without assigning a delivery errand',()=>{
   assert.equal(conversation('derek',purchased).event,'deliver-coffee');
 });
 
+test('Radio Hut hints at helping after market misfortune without giving hotel or entrance directions',()=>{
+  const arrived=until('module-reminder'),first=conversation('radio',arrived);
+  assert.equal(first.event,'radio-bargain');
+  const heard=finishConversation(arrived,first).state,repeated=conversation('radio',heard);
+  assert.equal(heard.flags.CH2_RADIO_HUT_BARGAIN,true);
+  assert.equal(heard.flags.CH2_NIGHT_UNLOCKED,undefined);
+  assert.equal(repeated.event,null);
+  assert.doesNotMatch(objective(heard),/hotel|closed store|front door|rear|service reader|go to/i);
+  for(const exchange of [first,repeated]){
+    const text=exchange.lines.map(line=>line.text).join(' ');
+    assert.match(text,/Whole Robotics Market/);
+    assert.match(text,/helpful mood|find time for your module/);
+    assert.doesNotMatch(text,/hotel|front door|rear|service reader|locked|go to/i);
+  }
+});
+
 test('losing the scripted attack leaves room to recover and consciously return for a retry',()=>{
   const scanned=until('scan-finished');
   const recovering=transition(scanned,'security-aborted').state;

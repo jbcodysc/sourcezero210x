@@ -1,10 +1,12 @@
 import {buildingFootprint,rearServiceEntrance} from './building-geometry.mjs';
 import {interiorDesignFor,furnishingObstacles} from './interior-design.mjs';
+import {COMPACT_CITY,COMPACT_ROADS,COMPACT_ARRIVAL,compactBuilding,INFILL_BUILDINGS,CITY_PATROLS} from './city-density.mjs';
 export {buildingFootprint,rearServiceEntrance} from './building-geometry.mjs';
-export const CITY={width:4800,height:4500};
+export {CITY_LAYOUT_VERSION,CITY_NPC_POINTS,CITY_FIXTURES,compactLegacyCityPoint} from './city-density.mjs';
+export const CITY=COMPACT_CITY;
 // The western street starts below the commons rather than running through it.
-export const ROADS={horizontal:[1100,2100,3400,4200],vertical:[750,3300,4350],verticalStarts:{750:1100}};
-export const ARRIVAL={x:760,y:4060};
+export const ROADS=COMPACT_ROADS;
+export const ARRIVAL=COMPACT_ARRIVAL;
 export const PARK={x:100,y:70,w:2000,h:930};
 export const PARK_DETAILS={
  demolition:{x:125,y:165,w:845,h:690},intact:{x:1060,y:100,w:1010,h:860},
@@ -50,7 +52,7 @@ export const BUILDINGS=[
  building('utility','GRID CONTROL','warehouse',2490,2390,480,640,false),
  building('dispatch','AUTONOMOUS DISPATCH','warehouse',4460,2350,270,650,false),
  building('lofts','EASTLINE LOFTS','apartment',4460,3550,270,530,false)
-];
+].map(compactBuilding).concat(INFILL_BUILDINGS);
 export const INTERIORS=['terminal','hotel','diner','apartment','clinic','radio','cafe','gear','books'];
 export const HOTEL={lobby:'fairmont-hotel',hall:'fairmont-hotel-upstairs',bedroom:'fairmont-hotel-room-204'};
 export const HOTEL_LOCATIONS=Object.values(HOTEL);
@@ -179,7 +181,7 @@ export function nearestWalkable(location,p,blockers=[],canStand=null){
  // This can only occur for an entirely blocked/invalid map; never return NaN.
  return {...center};
 }
-export function citySpawns(){return [{x:3470,y:1100},{x:4200,y:2000},{x:750,y:1500},{x:3290,y:3040},{x:2200,y:3400},{x:3300,y:4100}].map((p,i)=>({...p,id:'fairmont-security-'+i,w:280,h:150,armed:true,enemy:null}));}
+export function citySpawns(){return CITY_PATROLS.map((p,i)=>({...p,id:'fairmont-security-'+i,w:280,h:150,armed:true,enemy:null}));}
 export function spawnEvents(slots,player,view,allowed,rng=Math.random){const out=[];for(const s of slots){const distance=Math.hypot(s.x-player.x,s.y-player.y),visible=within(s.enemy||s,{x:view.x-170,y:view.y-170,w:view.w+340,h:view.h+340});if(!allowed){if(s.enemy)out.push({type:'remove',id:s.id});s.enemy=null;continue;}if(distance>1450&&!visible){if(s.enemy)out.push({type:'remove',id:s.id});s.enemy=null;s.armed=true;}if(!s.enemy&&s.armed&&distance<1100&&distance>300){s.armed=false;if(rng()<(s.chance??.82)){s.enemy={x:s.x,y:s.y};out.push({type:'spawn',id:s.id,x:s.x,y:s.y});}}}return out;}
 export function markDefeated(slots,id){const s=slots?.find(x=>x.id===id);if(s){s.enemy=null;s.armed=false;}}
 /** An unloaded room is entirely off screen. Re-entry gets one fresh spawn roll. */

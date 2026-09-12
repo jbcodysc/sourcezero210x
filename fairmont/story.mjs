@@ -1,4 +1,5 @@
 /** Chapter 2 story rules. No rendering, clocks, storage, or random effects live here. */
+import {COMPACT_CITY_FLAG} from './city-density.mjs';
 export const COFFEE_PRICE = 8;
 export const COFFEE_ITEM = 'caramel-macchiato';
 export const FACILITY_KEYCARD = 'fairmont-service-keycard';
@@ -125,7 +126,7 @@ export function objective(s){
   if(flag(s,'CH2_WRM_CLEARED'))return 'The lights are out. Return to the hotel when you are ready to sleep.';
   if(flag(s,'CH2_KAREN_DEFEATED'))return 'K.A.R.E.N. is down. The breaker lines still need your attention.';
   if(flag(s,'CH2_NIGHT_UNLOCKED'))return 'Look for Whole Robotics Market’s rear service entrance.';
-  if(flag(s,'CH2_RADIO_HUT_BARGAIN'))return 'Stay at the hotel. Harlan’s bargain needs a closed store.';
+  if(flag(s,'CH2_RADIO_HUT_BARGAIN'))return 'Harlan might help with the module if Whole Robotics Market has some bad luck.';
   return 'Find someone in Fairmont who can examine the storage module.';
 }
 
@@ -154,6 +155,7 @@ export function transition(s,event){
   switch(type){
     case 'arrive':
       if(!all(s,'waterRestored','relayTaken','badgeFixed'))break;
+      if(!flag(s,'CH2_ARRIVED'))mark(COMPACT_CITY_FLAG);
       mark('CH2_ARRIVED','Arrived in Fairmont Junction with the relay storage module and Ruth’s repaired service badge.');break;
     case 'module-reminder':if(flag(s,'CH2_ARRIVED'))mark('CH2_MODULE_REMINDER_SEEN');break;
     case 'radio-bargain':
@@ -282,7 +284,7 @@ export function conversation(rawId,s){
       {speaker:'Harlan Voss',text:'“Assist.” That word is getting a lot of work lately.'},
       {speaker:'{hero}',text:'I will check the park.'}
     ],'decrypt-start');
-    if(flag(s,'CH2_RADIO_HUT_BARGAIN'))return make(['I sleep very well when my competitors have a difficult evening. Entirely unrelated facts.','Their front door will be locked. Older rear service readers still use the same corporate contractor standard. Yours looks familiar.']);
+    if(flag(s,'CH2_RADIO_HUT_BARGAIN'))return make(['If Whole Robotics Market were to suffer a little misfortune, I might suddenly find time for your module. Funny how moods work.']);
     if(!flag(s,'CH2_MODULE_REMINDER_SEEN'))return make(['Looking for repairs? Look around. I do not charge for thinking, though I should start.']);
     return make([
       {speaker:'{hero}',text:'Could you read this storage module?'},
@@ -290,8 +292,7 @@ export function conversation(rawId,s){
       'Wait. Did you make that vibrosword? That grip is completely impractical. I respect the commitment.',
       'Whole Robotics Market is putting every independent repair shop out of business. Their idea of repair is selling a newer box.',
       'I’m not asking you to do anything. I’m just saying that if Whole Robotics Market had a very bad night, I might wake up in a very helpful mood.',
-      {speaker:'{hero}',text:'That is a remarkably specific kind of generosity.'},
-      'The hotel is south, near the terminal. Their competitors presumably sleep there too.'
+      {speaker:'{hero}',text:'That is a remarkably specific kind of generosity.'}
     ],'radio-bargain');
   }
   if(id==='hotel-clerk')return make([timeOfDay(s)==='night'?'Room 204 is yours. Take the stairs, then use your bed whenever you are ready to sleep.':'Your transit voucher covers room 204, upstairs. The other rooms are occupied. Make yourself comfortable in the common area.',flag(s,'CH2_RADIO_HUT_BARGAIN')&&!flag(s,'CH2_NIGHT_UNLOCKED')?'You look like someone with an exceptionally bad evening planned. I mean that professionally.':'Clean sheets, working plumbing, and a key that has never asked for a software update.']);
