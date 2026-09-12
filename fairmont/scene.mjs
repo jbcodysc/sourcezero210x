@@ -67,8 +67,9 @@ export function createFairmontScene(api){
   addCitizen(id,name,x,y,row=0,text=null,fixed=false){
    const zone=fixed?null:{x:x-90,y:y-60,w:180,h:100};
    if(['courier-local','service-local'].includes(id)){const n=this.addNPC({id,name,x,y,row,zone});n.flavor=text;return n;}
-   const sheets={derek:1,protester:2,camper:4,organizer:3,signmaker:5,bystander:9,commuter:8,technician:10,shopper:7,reader:8,worker:9,neighbor:7,'radio-owner':6,'diner-owner':6,barista:8,'hotel-clerk':7,nurse:8,bookseller:7,vendor:10,dispatcher:9,resident:10};
-   const visual=id==='security-guard'?createFairmontCitizen(this,x,y,'guard',104):sheets[id]?createCitizenActor(this,x,y,sheets[id],104):createFairmontCitizen(this,x,y,row?'olderwoman':'worker',104);
+   const sheets={derek:1,protester:2,camper:4,organizer:3,signmaker:5,bystander:6,commuter:8,technician:10,worker:9,neighbor:7,'diner-owner':6,barista:8,'hotel-clerk':7,nurse:8,dispatcher:9,resident:10};
+   const existing={'security-guard':'guard','radio-owner':'shopkeeper',shopper:'protester',reader:'derek',vendor:'worker',bookseller:'olderwoman'};
+   const visual=existing[id]?createFairmontCitizen(this,x,y,existing[id],104):sheets[id]?createCitizenActor(this,x,y,sheets[id],104):createFairmontCitizen(this,x,y,row?'olderwoman':'worker',104);
    const n={...visual,id,name,row,zone,flavor:text,wait:700+Math.random()*2400,target:null,stuck:0};this.npcs.push(n);return n;
   }
   roam(npc,...args){super.roam(npc,...args);if(npc.fairmontCitizen)drawCitizenActor(npc,0);}
