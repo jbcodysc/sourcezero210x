@@ -3,7 +3,15 @@ export const CITY={width:4608,height:4992};
 export const VIEW={width:1536,height:1024};
 export const STREETS={horizontal:[800,1600,2400,3200],vertical:[1536,3072],width:164};
 export const PARK={x:2304,y:2100,w:1120,h:620,fountain:{x:2304,y:2110,radius:86}};
-const building=(id,name,art,x,y,room)=>({id,name,art,x,y,room,door:{x,y:y+45},body:{x:x-225,y:y-190,w:450,h:190}});
+// Ground-contact widths follow the source facades; roofs never block a walker.
+// The shallow north/south base provides solid walls while allowing rear paths.
+const BASE_WIDTH_FRACTIONS=[.95,.91,.94,.91,.96,.91,.93,.94,.98,.92,.9,.9,.89,.89,.95];
+export function buildingFootprint(b){
+ const frame=CITY_FRAMES['building-'+b.art],height=frame[3]*FACADE_WIDTH/frame[2];
+ const width=FACADE_WIDTH*BASE_WIDTH_FRACTIONS[b.art],depth=Math.max(66,Math.min(104,height*.20));
+ return {x:b.x-width/2,y:b.y-depth,w:width,h:depth-4};
+}
+const building=(id,name,art,x,y,room)=>{const b={id,name,art,x,y,room,door:{x,y:y+45}};b.body=buildingFootprint(b);return b;};
 export const BUILDINGS=[
  building('lab','Bellwether Pharmaceutical',0,768,630,'lab'),
  building('hall','Town Hall',3,2304,630,'office'),

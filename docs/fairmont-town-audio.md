@@ -1,4 +1,4 @@
-# Fairmont Junction town music
+# Fairmont Junction supplied interior music
 
 The supplied `Fairmont_Junction_Industrial_Town_Theme.mid` is preserved unchanged
 in `city/assets/`. The original implementation README is preserved alongside this
@@ -18,11 +18,13 @@ closed hi-hats, retained as muted metallic hi-hats. Sounds are synthesized;
 no third-party samples or soundfonts are required. The machine-readable render
 report is `tools/fairmont-town-verification.json`.
 
-The existing CityAudio manager owns the new `fairmontTown` track. Fairmont's
-outdoor city, homes, shops, clinic, hotel lobby, hallway, and bedroom use it.
-City/interior transitions retain the same playing source; normal battles pause
-it and resume its previous position. Mute, tab visibility, and fountain audio
-continue to use the existing controls.
+The existing CityAudio manager owns this `fairmontTown` track. Following the
+subsequent city-machine soundtrack request, it is retained in Fairmont's homes,
+coffee shop, diner, clinic, bookstore, radio shop, and hotel lobby, hallway, and
+bedroom. The street, transit terminal, and robotics workshop/store instead use
+the new original industrial-city score described in `fairmont-machine-audio.md`.
+Each score retains its own playback position when changing places or entering
+battle. Mute and tab visibility continue to use the existing controls.
 
 Whole Robotics and the drone facility retain their existing dungeon themes.
 The A.R.G.U.S. entrance and boss battle keep their existing audio. Chapter 1's

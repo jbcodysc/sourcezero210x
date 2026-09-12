@@ -9,15 +9,18 @@ export class CityAudio {
   const options={contextFactory:()=>this.getContext(),onError:()=>this.onChange(),onReady:()=>{if(this.menu?.gain)this.menu.gain.gain.value=.5;this.onChange();}};
   this.town=new BattleMusic(new URL('./assets/town.wav',import.meta.url).href,{...options,resumeOnStart:true});
   this.fairmontTown=new BattleMusic(new URL('./assets/fairmont-junction-industrial-town.wav',import.meta.url).href,{...options,resumeOnStart:true});
+  this.fairmontCity=new BattleMusic(new URL('./assets/fairmont-city-machine.wav',import.meta.url).href,{...options,resumeOnStart:true});
   this.battle=new BattleMusic(new URL('../lab/assets/robot-in-the-reagent-room.wav',import.meta.url).href,options);
-  this.water=new BattleMusic(new URL('./assets/fountain.wav',import.meta.url).href,options);
+  // Distance-controlled ambience must begin silently. Starting at the music
+  // player's normal gain caused a full-volume transient before the first ramp.
+  this.water=new BattleMusic(new URL('./assets/fountain.wav',import.meta.url).href,{...options,initialVolume:0});
   this.menu=new BattleMusic(new URL('./assets/name-select.wav',import.meta.url).href,options);
   this.dungeon=new BattleMusic(new URL('./assets/below-the-intake-waterworks.mp3',import.meta.url).href,{...options,resumeOnStart:true});
   this.factory=new BattleMusic(new URL('./assets/ch2_drone_factory_theme.wav',import.meta.url).href,{...options,resumeOnStart:true});
   this.argus=new BattleMusic(new URL('./assets/ch2_argus_battle_theme.wav',import.meta.url).href,options);
   this.waterDistance=Infinity;
  }
- get tracks(){return [this.town,this.fairmontTown,this.battle,this.water,this.menu,this.dungeon,this.factory,this.argus];}
+ get tracks(){return [this.town,this.fairmontTown,this.fairmontCity,this.battle,this.water,this.menu,this.dungeon,this.factory,this.argus];}
  get failed(){return this.tracks.some(t=>t.failed)||this.effectFailed;}
  getContext(){if(!this.context||this.context.state==='closed')this.context=new (globalThis.AudioContext||globalThis.webkitAudioContext)();return this.context;}
  unlock(retry=false){
@@ -31,7 +34,7 @@ export class CityAudio {
   this.mode=mode;
   // Stop all nonselected sources before starting the new one. In particular,
   // the entrance has no music and the boss never shares a source with its factory.
-  const selected=mode==='fairmont-city'||mode==='fairmont-interior'?this.fairmontTown:mode==='dungeon'?this.dungeon:mode==='factory'?this.factory:mode==='argus-battle'?this.argus:mode==='battle'?this.battle:mode==='menu'?this.menu:mode==='city'||mode==='interior'?this.town:null;
+  const selected=mode==='fairmont-city'||mode==='fairmont-industrial'?this.fairmontCity:mode==='fairmont-interior'?this.fairmontTown:mode==='dungeon'?this.dungeon:mode==='factory'?this.factory:mode==='argus-battle'?this.argus:mode==='battle'?this.battle:mode==='menu'?this.menu:mode==='city'||mode==='interior'?this.town:null;
   for(const track of this.tracks)if(track!==selected&&(track!==this.water||!['city','fairmont-city'].includes(mode)))track.stop();
   selected?.start();if(selected===this.menu&&this.menu.gain)this.menu.gain.gain.value=.5;
   if(mode!=='transition')this.stopEffects('fanfare');if(mode!=='victory')this.stopEffects('victory');

@@ -1,14 +1,18 @@
+import {buildingFootprint,rearServiceEntrance} from './building-geometry.mjs';
+import {interiorDesignFor,furnishingObstacles} from './interior-design.mjs';
+export {buildingFootprint,rearServiceEntrance} from './building-geometry.mjs';
 export const CITY={width:4800,height:4500};
 // The western street starts below the commons rather than running through it.
 export const ROADS={horizontal:[1100,2100,3400,4200],vertical:[750,3300,4350],verticalStarts:{750:1100}};
 export const ARRIVAL={x:760,y:4060};
-export const PARK={x:100,y:130,w:1900,h:820};
+export const PARK={x:100,y:70,w:2000,h:930};
 export const PARK_DETAILS={
- demolition:{x:125,y:165,w:845,h:690},intact:{x:1010,y:155,w:960,h:760},
+ demolition:{x:125,y:165,w:845,h:690},intact:{x:1060,y:100,w:1010,h:860},
  paths:[{x:1000,y:845,w:1000,h:85},{x:1470,y:200,w:110,h:715},{x:1040,y:650,w:900,h:85}],
  fence:[{x:990,y:275},{x:990,y:430},{x:990,y:585},{x:990,y:740}],
  trees:[{x:1080,y:365},{x:1880,y:340},{x:1850,y:865}],
  tents:[{x:1160,y:560},{x:1740,y:615}],benches:[{x:1280,y:435},{x:1790,y:735}],
+ flowerbeds:[{x:1280,y:330,scale:.85},{x:1765,y:400,scale:.85},{x:1320,y:610,scale:.85},{x:2040,y:660,scale:.9},{x:1700,y:965,scale:.85}],
  fountain:{x:1560,y:485},
  dirtPiles:[{x:325,y:380,scale:1.5},{x:685,y:700,scale:1.25},{x:760,y:300,scale:1}],
  fallenTrees:[{x:375,y:655,angle:-14},{x:690,y:490,angle:18}],
@@ -22,6 +26,8 @@ export const PARK_OBSTACLES=[
  ...PARK_DETAILS.trees.map(({x,y})=>({x:x-26,y:y-27,w:52,h:32})),
  ...PARK_DETAILS.tents.map(({x,y})=>({x:x-85,y:y-65,w:170,h:65})),
  ...PARK_DETAILS.benches.map(({x,y})=>({x:x-65,y:y-30,w:130,h:35})),
+ ...PARK_DETAILS.flowerbeds.map(({x,y,scale})=>({x:x-72*scale,y:y-57*scale,w:144*scale,h:57*scale})),
+ ...PARK_DETAILS.fence.map(({x,y})=>({x:x-50,y:y-25,w:100,h:30})),
  {x:PARK_DETAILS.fountain.x-80,y:PARK_DETAILS.fountain.y-55,w:160,h:65},
 ];
 const building=(id,name,type,x,y,w=510,h=520,enter=true)=>({id,name,type,x,y,w,h,enter,door:{x:x+w/2,y:y+h+50}});
@@ -42,8 +48,8 @@ export const BUILDINGS=[
  building('civic','CIVIC SERVICES','apartment',100,2470,460,590,false),
  building('homes','RAILWAY TERRACE','apartment',100,1380,460,580,false),
  building('utility','GRID CONTROL','warehouse',2490,2390,480,640,false),
- building('dispatch','AUTONOMOUS DISPATCH','warehouse',4480,2350,270,650,false),
- building('lofts','EASTLINE LOFTS','apartment',4480,3550,270,530,false)
+ building('dispatch','AUTONOMOUS DISPATCH','warehouse',4460,2350,270,650,false),
+ building('lofts','EASTLINE LOFTS','apartment',4460,3550,270,530,false)
 ];
 export const INTERIORS=['terminal','hotel','diner','apartment','clinic','radio','cafe','gear','books'];
 export const HOTEL={lobby:'fairmont-hotel',hall:'fairmont-hotel-upstairs',bedroom:'fairmont-hotel-room-204'};
@@ -87,6 +93,10 @@ const hotelMaps={
   doors:[roomDoor('hotel-room-exit','south',HOTEL.hall,'Return to the guest corridor',{position:{x:1020,y:520}})],lockedDoors:[],bed:{x:505,y:665},
  },
 };
+for(const map of Object.values(hotelMaps)){
+ const design=interiorDesignFor(map.id);map.props=design.props;map.furnishingObstacles=furnishingObstacles(design);
+ if(design.service)map.clerk={...design.service};
+}
 export const hotelMapFor=id=>hotelMaps[id]||null;
 const puzzleSpecs=[
  {id:'receiving-power',name:'Reroute loading-bay power',flag:'CH2_RECEIVING_POWER',text:'Auxiliary power routed to the service shutter. The freight route is open.',type:'console'},
@@ -113,7 +123,7 @@ export function mapFor(requestedId){
  if(roomIndex===0){
   link('east',1,'Enter '+names[1]);
   if(index>0)doors.push(roomDoor(id+'-previous','south',dungeonRoomId(bases[index-1],5),'Stairs to the previous '+(isMarket?'floor':'zone'),{visual:'stairs',position:{...entryFor.south}}));
-  else {const b=BUILDINGS.find(b=>b.id===(isMarket?'market':'facility'));doors.push(roomDoor(id+'-street','south','fairmont','Exit through the service entrance',{position:{x:b.x+b.w+85,y:b.y+(isMarket?190:350)},...(!isMarket?{requiresFlag:'CH2_ARGUS_DEFEATED',lockedText:'The entry lockdown is controlled by A.R.G.U.S. The integration core must release it.'}:{})}));}
+  else {const b=BUILDINGS.find(b=>b.id===(isMarket?'market':'facility'));doors.push(roomDoor(id+'-street','south','fairmont','Exit through the service entrance',{position:rearServiceEntrance(b),...(!isMarket?{requiresFlag:'CH2_ARGUS_DEFEATED',lockedText:'The entry lockdown is controlled by A.R.G.U.S. The integration core must release it.'}:{})}));}
  }
  if(roomIndex===1){link('west',0,'Return to the foyer');link('north',2,'Enter '+names[2]);link('east',3,'Enter '+names[3]);}
  if(roomIndex===2){link('south',1,'Return to '+names[1]);link('east',4,'Enter '+names[4]);}
@@ -129,24 +139,46 @@ export function mapFor(requestedId){
  const puzzle=!isMarket&&roomIndex===4?{...puzzleSpecs[index],room:4,x:785,y:510}:null;
  const logs=roomIndex===2?[{index:5,x:440,y:720}]:roomIndex===4?[{index:isMarket?7:1,x:440,y:735}]:[];
  const spawns=[1,3,4,5].includes(roomIndex)&&!boss&&!rest?[{id:id+'-patrol',x:1060,y:745,w:170,h:120,armed:true,enemy:null,chance:.72}]:[];
+ // Whole Robotics previously had eleven slots. Eight additional independent rolls
+ // give nineteen (round(11 * 1.75)); the facility and safe supply rooms stay unchanged.
+ if(isMarket&&([1,3].includes(roomIndex)||(roomIndex===4&&index<2)))spawns.push({id:id+'-second-patrol',x:550,y:785,w:100,h:100,armed:true,enemy:null,chance:.72});
  const elevator=!isMarket&&lastFloor&&roomIndex===5?{id:'argus-return-elevator',x:1225,y:790,target:FACILITY_ZONES[0],position:{...entryFor.south},name:'Return elevator · receiving',requiresFlag:'CH2_ARGUS_DEFEATED',lockedText:'The lift is held by the integration lockdown. It will activate when A.R.G.U.S. is defeated.',visual:'elevator'}:null;
  const room={id:roomIndex,...INDOOR_FLOOR,title:names[roomIndex]};
  const map={id,baseId,index,isMarket,roomIndex,roomKind:roomIndex===0?'foyer':roomIndex===2?'supplies':boss?'boss':'workroom',...INDOOR_SIZE,title,rooms:[room],corridors:[],floor:[INDOOR_FLOOR],props,arrival:{...entryFor.west},doors,up:null,down:null,point:()=>({x:775,y:720}),puzzle,supply,spawns,boss,rest,logs,elevator};
  if(roomIndex===0)map.arrival={...entryFor.south};
+ const design=interiorDesignFor(id,map);map.props=design.props;map.furnishingObstacles=furnishingObstacles(design);
  mapCache.set(id,map);return map;
 }
 export function within(p,r,pad=0){return p.x>=r.x-pad&&p.x<=r.x+r.w+pad&&p.y>=r.y-pad&&p.y<=r.y+r.h+pad;}
+const interiorCollisionCache=new Map();
+function interiorObstacles(location){if(!interiorCollisionCache.has(location))interiorCollisionCache.set(location,furnishingObstacles(interiorDesignFor(location)));return interiorCollisionCache.get(location);}
 export function worldWalkable(location,x,y,blockers=[]){
+ if(!Number.isFinite(x)||!Number.isFinite(y))return false;
  const p={x,y},map=mapFor(location)||hotelMapFor(location);
- if(map){if(!map.floor.some(r=>within(p,r,-20)))return false;if(map.props.some(r=>within(p,{x:r.x-r.w/2,y:r.y-r.h,w:r.w,h:r.h},15)))return false;}
+ if(map){if(!map.floor.some(r=>within(p,r,-20)))return false;if(map.furnishingObstacles.some(r=>within(p,r,15)))return false;}
  else if(location==='fairmont'){
   if(x<45||y<80||x>CITY.width-45||y>CITY.height-50)return false;
-  if(BUILDINGS.some(b=>within(p,b,18)))return false;
+  if(BUILDINGS.some(b=>within(p,buildingFootprint(b),14)))return false;
   if(PARK_OBSTACLES.some(r=>within(p,r,12)))return false;
- }else{if(x<155||x>1390||y<395||y>955)return false;}
+ }else{if(x<155||x>1390||y<395||y>955)return false;if(interiorObstacles(location).some(r=>within(p,r,15)))return false;}
  return !blockers.some(b=>Math.hypot(x-b.x,y-b.y)<42);
 }
-export function nearestWalkable(location,p){if(worldWalkable(location,p.x,p.y))return p;const center=(mapFor(location)||hotelMapFor(location))?.arrival|| (location==='fairmont'?ARRIVAL:{x:770,y:845});for(let r=0;r<300;r+=30)for(let a=0;a<8;a++){const q={x:center.x+Math.cos(a*Math.PI/4)*r,y:center.y+Math.sin(a*Math.PI/4)*r};if(worldWalkable(location,q.x,q.y))return q;}return center;}
+export function nearestWalkable(location,p,blockers=[],canStand=null){
+ const pass=canStand||((x,y)=>worldWalkable(location,x,y,blockers));
+ const center=(mapFor(location)||hotelMapFor(location))?.arrival||(location==='fairmont'?ARRIVAL:{x:770,y:845});
+ // Prefer a nearby correction to a stale saved position before moving to a room's
+ // fallback entrance. Both searches include furniture and present NPC bodies.
+ for(const start of [p,center]){
+  if(!Number.isFinite(start?.x)||!Number.isFinite(start?.y))continue;
+  if(pass(start.x,start.y))return {...start};
+  for(let r=24;r<=312;r+=24)for(let a=0;a<16;a++){
+   const q={x:start.x+Math.cos(a*Math.PI/8)*r,y:start.y+Math.sin(a*Math.PI/8)*r};
+   if(pass(q.x,q.y))return q;
+  }
+ }
+ // This can only occur for an entirely blocked/invalid map; never return NaN.
+ return {...center};
+}
 export function citySpawns(){return [{x:3470,y:1100},{x:4200,y:2000},{x:750,y:1500},{x:3290,y:3040},{x:2200,y:3400},{x:3300,y:4100}].map((p,i)=>({...p,id:'fairmont-security-'+i,w:280,h:150,armed:true,enemy:null}));}
 export function spawnEvents(slots,player,view,allowed,rng=Math.random){const out=[];for(const s of slots){const distance=Math.hypot(s.x-player.x,s.y-player.y),visible=within(s.enemy||s,{x:view.x-170,y:view.y-170,w:view.w+340,h:view.h+340});if(!allowed){if(s.enemy)out.push({type:'remove',id:s.id});s.enemy=null;continue;}if(distance>1450&&!visible){if(s.enemy)out.push({type:'remove',id:s.id});s.enemy=null;s.armed=true;}if(!s.enemy&&s.armed&&distance<1100&&distance>300){s.armed=false;if(rng()<(s.chance??.82)){s.enemy={x:s.x,y:s.y};out.push({type:'spawn',id:s.id,x:s.x,y:s.y});}}}return out;}
 export function markDefeated(slots,id){const s=slots?.find(x=>x.id===id);if(s){s.enemy=null;s.armed=false;}}

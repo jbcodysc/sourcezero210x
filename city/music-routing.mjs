@@ -5,6 +5,7 @@ export function explorationMusicMode(scene){
  if(scene.map)return scene.map.isMarket?'dungeon':'factory';
  if(scene.floor||scene.location==='water')return 'dungeon';
  if(scene.location==='fairmont')return 'fairmont-city';
+ if(['fairmont-terminal','fairmont-gear'].includes(scene.location))return 'fairmont-industrial';
  if(scene.location?.startsWith('fairmont-'))return 'fairmont-interior';
  if(scene.location==='city')return 'city';
  return scene.location==='lab'?'lab':'interior';

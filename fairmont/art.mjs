@@ -1,5 +1,6 @@
 // Original Fairmont assets. The raw atlases use a magenta matte, removed once at load.
 // World geometry belongs to the map; these helpers only draw individual objects.
+import {buildingType,buildingGeometry,rearServiceEntrance} from './building-geometry.mjs';
 export const FAIRMONT_BUILDING_FRAMES = {
  hotel:[16,48,364,491],radio:[400,122,338,416],market:[744,44,442,492],cafe:[1190,125,328,414],
  apartment:[15,570,315,377],warehouse:[350,590,365,357],facility:[737,542,451,405],terminal:[1199,633,325,311]
@@ -118,18 +119,6 @@ export function drawFairmontBus(scene,x,y,width=440,night=false){
  bus.setScale(width/bus.width);if(night)bus.setTint(0xa1aac9);return bus;
 }
 
-function buildingType(b){
- const value=String(b.type||b.id||'').toLowerCase();
- if(/hotel|inn/.test(value))return 'hotel';
- if(/radio|gear|repair|shop/.test(value))return 'radio';
- if(/market|retail|whole|wrm/.test(value))return 'market';
- if(/cafe|coffee|diner/.test(value))return 'cafe';
- if(/facility|drone|cenexis/.test(value))return 'facility';
- if(/terminal|bus|transit/.test(value))return 'terminal';
- if(/warehouse|freight|industrial|utility|supply/.test(value))return 'warehouse';
- return 'apartment';
-}
-
 export function drawFairmontBuilding(scene,b,night=false){
  const type=buildingType(b),x=b.x+b.w/2,y=b.y+b.h;
  const container=scene.add.container(x,y).setDepth(y);
@@ -149,7 +138,22 @@ export function drawFairmontBuilding(scene,b,night=false){
   if(name.width>panelWidth-12)name.setScale((panelWidth-12)/name.width);
   container.add([plate,name]);
  }
- container.facade=image;return container;
+ container.facade=image;container.geometry=buildingGeometry(b);return container;
+}
+
+/** A real service doorway mounted at the rear ground wall, beneath the facade. */
+export function drawFairmontServiceEntrance(scene,b,night=false){
+ const point=rearServiceEntrance(b),door=scene.add.container(point.x,point.y).setDepth(point.y-150);
+ const g=scene.add.graphics();
+ g.fillStyle(night?0x41505b:0x8e999b).fillRect(-64,-12,128,64);
+ g.fillStyle(0x263943).fillRect(-47,-83,94,91);
+ g.fillStyle(night?0x526675:0x82959b).fillRect(-38,-75,76,76);
+ g.lineStyle(3,0x344b59);for(let y=-68;y<-5;y+=13)g.lineBetween(-33,y,33,y);
+ g.fillStyle(0x1b2933).fillRect(44,-40,13,28);
+ g.fillStyle(0x7de6e1).fillRect(47,-36,7,10);
+ g.fillStyle(0xf2c75c).fillRect(-43,4,86,8);
+ const label=scene.add.text(0,-97,b.id==='market'?'SERVICE':'STAFF',{fontFamily:'monospace',fontSize:'12px',fontStyle:'bold',color:'#e4ecea',backgroundColor:'#263943',padding:{x:5,y:3}}).setOrigin(.5,1);
+ door.add([g,label]);door.entrance=point;return door;
 }
 
 export function drawFairmontProp(scene,type,x,y,scale=1){

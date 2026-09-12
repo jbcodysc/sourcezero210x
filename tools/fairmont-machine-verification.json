@@ -1,0 +1,77 @@
+{
+  "title": "Fairmont Junction \u2014 The City Is a Machine",
+  "original": true,
+  "bpm": 108,
+  "meter": "4/4",
+  "bars": 84,
+  "sample_rate": 44100,
+  "channels": 2,
+  "duration": 186.66666666666666,
+  "peak": 0.8700000643730164,
+  "rms": 0.1740327626466751,
+  "seam_delta": [
+    0,
+    0
+  ],
+  "stereo_correlation": 0.9066811806231315,
+  "events": {
+    "generator / ventilation": 42,
+    "distant rotating motor": 42,
+    "hydraulic press": 168,
+    "steel / freight locking": 168,
+    "conveyor carriage": 672,
+    "synchronized relays": 528,
+    "chain drive": 146,
+    "mechanical clamp": 73,
+    "motor bass": 149,
+    "dark electric keys": 63,
+    "distant freight horn": 11,
+    "pressure exhaust": 42,
+    "sheet-metal punctuation": 9,
+    "fragmented city motif": 119,
+    "answering factory horn": 8,
+    "pitched pipe response": 92,
+    "loading carriage scrape": 46,
+    "pitched mechanical answer": 33,
+    "automated latch sequence": 36,
+    "two-factory harmony": 3
+  },
+  "sections": [
+    {
+      "name": "Immediate machinery",
+      "start": 0.0,
+      "end": 17.77777777777778
+    },
+    {
+      "name": "Main city motif",
+      "start": 17.77777777777778,
+      "end": 44.44444444444444
+    },
+    {
+      "name": "Concurrent production",
+      "start": 44.44444444444444,
+      "end": 75.55555555555556
+    },
+    {
+      "name": "Distant-scale section",
+      "start": 75.55555555555556,
+      "end": 100.0
+    },
+    {
+      "name": "Busy intersection",
+      "start": 100.0,
+      "end": 140.0
+    },
+    {
+      "name": "Maximum production",
+      "start": 140.0,
+      "end": 166.66666666666669
+    },
+    {
+      "name": "Cycle return",
+      "start": 166.66666666666669,
+      "end": 186.66666666666669
+    }
+  ],
+  "source": "Original NumPy physical/modal synthesis; no external recordings or borrowed music"
+}

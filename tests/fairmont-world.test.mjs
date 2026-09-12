@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {
   ARRIVAL, BUILDINGS, CITY, ROADS, PARK, PARK_DETAILS, MARKET_FLOORS, FACILITY_ZONES,
   ROOM_LOCATIONS, HOTEL, HOTEL_LOCATIONS, mapFor, hotelMapFor, canonicalLocation, dungeonRoomId,
-  worldWalkable, nearestWalkable, citySpawns, spawnEvents, markDefeated, retireRoomSpawns, chaseWaypoint,
+  worldWalkable, nearestWalkable, citySpawns, spawnEvents, markDefeated, retireRoomSpawns, chaseWaypoint,buildingFootprint,rearServiceEntrance,
 } from '../fairmont/world.mjs';
 import { createFairmontScene } from '../fairmont/scene.mjs';
+import {interiorDesignFor} from '../fairmont/interior-design.mjs';
 
 // Use the player's collision function. Intermediate probes cannot skip through
 // furniture; off-grid targets are linked to a reached cell using the same rule.
@@ -87,15 +88,16 @@ test('rooms load as distinct enclosed areas connected only through door transiti
  }
 });
 
-test('sparse dungeon encounters leave safe foyers and separate healing rooms',()=>{
+test('expanded market patrols and sparse facility encounters leave safe foyers and healing rooms',()=>{
+ assert.equal(ROOM_LOCATIONS.map(mapFor).filter(m=>m.isMarket).flatMap(m=>m.spawns).length,Math.round(11*1.75));
  for(const base of [...MARKET_FLOORS,...FACILITY_ZONES]){
   const maps=ROOM_LOCATIONS.filter(id=>mapFor(id).baseId===base).map(mapFor);
-  assert.ok(maps.flatMap(m=>m.spawns).length<=4);
-  assert.ok(maps.every(m=>m.spawns.length<=1));
+  assert.ok(maps.flatMap(m=>m.spawns).length<=(mapFor(base).isMarket?7:4));
+  assert.ok(maps.every(m=>m.spawns.length<=(m.isMarket?2:1)));
   assert.equal(mapFor(base).spawns.length,0,'stairs arrive into a safe foyer');
   assert.ok(maps.some(m=>m.supply.some(s=>s.kind==='snack')&&m.spawns.length===0));
-  assert.ok(maps.some(m=>m.spawns.length===1&&!m.supply.length&&!m.puzzle&&!m.rest&&!m.boss),'each floor includes an enemy-only room');
-  assert.ok(maps.filter(m=>m.spawns.length).every(m=>m.spawns[0].chance>0&&m.spawns[0].chance<1));
+  assert.ok(maps.some(m=>m.spawns.length>=1&&!m.supply.length&&!m.puzzle&&!m.rest&&!m.boss),'each floor includes an enemy-only room');
+  assert.ok(maps.flatMap(m=>m.spawns).every(s=>s.chance===.72));
  }
 });
 
@@ -114,7 +116,7 @@ test('only the defeated final boss releases the facility return elevator and str
 test('hotel has a public lobby, upstairs corridor and only one accessible guest bedroom',()=>{
  const lobby=hotelMapFor(HOTEL.lobby),hall=hotelMapFor(HOTEL.hall),bedroom=hotelMapFor(HOTEL.bedroom);
  assert.equal(BUILDINGS.find(b=>b.id==='hotel').stories,2);
- assert.equal(lobby.kind,'lobby');assert.equal(lobby.bed,null);assert.ok(lobby.clerk);assert.ok(lobby.props.some(p=>p.type==='sofa'));assert.ok(lobby.props.some(p=>p.type==='desk'));
+ assert.equal(lobby.kind,'lobby');assert.equal(lobby.bed,null);assert.ok(lobby.clerk);assert.ok(lobby.props.some(p=>p.type==='sofa'));assert.ok(interiorDesignFor(lobby.id).details.some(p=>p.type==='reception'));
  assert.ok(lobby.doors.some(d=>d.target===HOTEL.hall&&d.stairs));
  assert.equal(hall.lockedDoors.length,4);assert.equal(hall.doors.filter(d=>d.target.startsWith('fairmont-hotel-room-')).length,1);assert.equal(hall.bed,null);
  assert.ok(bedroom.bed);assert.equal(bedroom.doors[0].target,HOTEL.hall);
@@ -142,7 +144,7 @@ test('floor walls, room furniture, city facades and construction enclosure keep 
     assert.equal(worldWalkable(location,prop.x,prop.y-10),false);
     assert.ok(worldWalkable(location,map.arrival.x,map.arrival.y));
   }
-  for (const building of BUILDINGS) assert.equal(worldWalkable('fairmont',building.x+building.w/2,building.y+building.h/2),false);
+  for (const building of BUILDINGS){const f=buildingFootprint(building);assert.equal(worldWalkable('fairmont',f.x+f.w/2,f.y+f.h/2),false);}
   assert.equal(worldWalkable('fairmont',PARK_DETAILS.demolition.x+200,PARK_DETAILS.demolition.y+200),false);
   assert.equal(worldWalkable('fairmont',-10,100),false);
 });
@@ -209,7 +211,7 @@ test('save-position recovery supplies a walkable point for a stale blocked posit
 // collision rectangles and interaction targets for geometry checks.
 function drawingObject() {
   const object = {width:320,height:400,displayWidth:320,displayHeight:400};
-  for (const key of ['setDepth','fillStyle','fillRect','fillEllipse','fillRoundedRect','lineStyle','lineBetween','strokeRect','setOrigin','setTint','add','setStrokeStyle','setAngle']) object[key] = () => object;
+  for (const key of ['setDepth','setPosition','fillStyle','fillRect','fillEllipse','fillRoundedRect','lineStyle','lineBetween','strokeRect','setOrigin','setTint','add','setStrokeStyle','setAngle','setAlpha']) object[key] = () => object;
   object.setScale = scale => {object.displayWidth=object.width*scale;object.displayHeight=object.height*scale;return object;};
   return object;
 }
@@ -257,9 +259,9 @@ test('runtime market and facility service entrances, exit return points and city
     assert.ok(target,`${id} is missing`);
     assert.ok(interactionCanBeSelected(scene,target,reachable),`${id} cannot be selected from a reachable point`);
   }
-  for(const [id,offset] of [['market',190],['facility',350]]) {
+  for(const id of ['market','facility']) {
     const building=BUILDINGS.find(b=>b.id===id);
-    assert.ok(reachable({x:building.x+building.w+85,y:building.y+offset}),`${id} exit returns the player inside a wall`);
+    assert.ok(reachable(rearServiceEntrance(building)),`${id} exit returns the player inside a wall`);
   }
   for(const npc of scene.npcs) assert.ok(worldWalkable('fairmont',npc.x,npc.y),`${npc.name} starts inside a world collider`);
 });
@@ -298,7 +300,8 @@ test('patrols route around furniture within their current room without leaving i
 
 test('city pursuit routes around building footprints and the closed construction site',()=>{
  const building=BUILDINGS.find(b=>b.id==='radio');
- const turns=assertChaseReaches('fairmont',{x:building.x-65,y:building.y+building.h/2},{x:building.x+building.w+65,y:building.y+building.h/2});
+ const base=buildingFootprint(building);
+ const turns=assertChaseReaches('fairmont',{x:base.x-65,y:base.y+base.h/2},{x:base.x+base.w+65,y:base.y+base.h/2});
  assert.ok(turns>1,'a city chase should route around the building instead of going through it');
  assertChaseReaches('fairmont',{x:100,y:450},{x:1030,y:450});
 });
