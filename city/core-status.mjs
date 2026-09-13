@@ -14,9 +14,9 @@ const ITEMS={
  sandwich:{name:'Pocket sandwich',description:'A simple sandwich, kept safely away from solvents.',heal:SANDWICH_HEAL},
  'caramel-macchiato':{name:'Caramel macchiato',description:'Handmade coffee. A little comfort in a paper cup.',heal:15},
  'insulated-grip':{name:'Insulated grip',description:'A safer grip for the homemade vibrosword.',kind:'weapon',tier:1,attack:6},
- 'fairmont-service-keycard':{name:'Cenexis service keycard',description:'Authorizes the employee entrance to the Drone Facility. Used automatically at the reader.'},
- 'service-badge':{name:'Repaired service badge',description:'Ruth repaired this standardized access badge. Used at compatible service entrances.'},
- 'storage-module':{name:'Relay storage module',description:'Recovered relay records. Harlan traced the encrypted code to Cenexis.'}
+ 'fairmont-service-keycard':{keyItem:true,name:'Cenexis service keycard',description:'Authorizes the employee entrance to the Drone Facility. Used automatically at the reader.'},
+ 'service-badge':{keyItem:true,name:'Repaired service badge',description:'Ruth repaired this standardized access badge. Used at compatible service entrances.'},
+ 'storage-module':{keyItem:true,name:'Relay storage module',description:'Recovered relay records. Harlan traced the encrypted code to Cenexis.'}
 };
 export function inventoryEntries(s){
  const counts=new Map();if(s.snacks>0)counts.set('sandwich',s.snacks);

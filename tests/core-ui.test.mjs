@@ -77,3 +77,24 @@ test('Bellwether title progress persists without completing or replaying the act
  const storage={getItem(){return this.value;},setItem(k,v){this.value=v;}};new SaveSlots(storage).write(0,p);p=new SaveSlots(storage).read(0);assert.equal(p.flags.CH2_BELLWETHER_TITLE_SEEN,true);assert.deepEqual(resumeEvent(p),{type:'bellwether',step:0});
  p=transition(p,{type:'scene-step',step:2}).state;assert.equal(resumeEvent(p).step,2);p=transition(p,'bellwether-finished').state;assert.equal(resumeEvent(p),null);
 });
+
+
+test('submenu arrows stay local, Escape backs out one level, and key items are separate',()=>{
+ const h=uiHarness();h.s.hp-=100;h.ui.open();h.tap('ArrowRight');assert.equal(h.ui.tab,'items');assert.equal(h.ui.level,'tabs');
+ h.tap('Enter');assert.equal(h.ui.level,'categories');h.tap('Enter');assert.equal(h.ui.level,'list');
+ assert.ok(h.ui.visibleItems().every(i=>!i.keyItem));h.tap('Enter');assert.equal(h.ui.item,'sandwich');assert.equal(h.ui.level,'actions');
+ h.tap('ArrowRight');assert.equal(h.ui.command,'use');assert.equal(h.ui.tab,'items');h.tap('ArrowDown');assert.equal(h.ui.command,'use');assert.equal(h.ui.level,'actions');
+ h.tap('ArrowLeft');assert.equal(h.ui.command,'check');h.tap('Enter');assert.match(h.ui.detail,/Restores 70 HP/);
+ h.tap('ArrowRight');h.tap('Enter');assert.equal(h.s.snacks,1);h.tap('Enter');assert.equal(h.ui.level,'actions');
+ h.tap('Escape');assert.equal(h.ui.level,'list');h.tap('ArrowRight');assert.equal(h.ui.tab,'items');assert.equal(h.ui.level,'list');
+ h.tap('Escape');assert.equal(h.ui.level,'categories');h.tap('ArrowRight');assert.equal(h.ui.category,'key');assert.ok(h.ui.visibleItems().every(i=>i.keyItem));
+ h.tap('Enter');h.tap('Enter');assert.equal(h.ui.level,'actions');h.tap('ArrowRight');assert.equal(h.ui.command,'check','unusable key cannot focus USE');
+ h.tap('Escape');h.tap('Escape');h.tap('Escape');assert.equal(h.ui.level,'tabs');h.tap('ArrowLeft');assert.equal(h.ui.tab,'status');h.tap('Escape');assert.equal(h.ui.mode,null);
+});
+
+test('using the last consumable returns to the list and equipped gear has a bold E',()=>{
+ const h=uiHarness();h.s.snacks=1;h.s.hp-=80;h.ui.open();h.ui.action('core-tab:items');h.ui.action('core-item:sandwich');h.ui.action('core-use');h.tap('Enter');
+ assert.equal(h.ui.level,'list');assert.equal(h.ui.item,null);assert.equal(h.ui.visibleItems().some(i=>i.id==='sandwich'),false);
+ assert.match(h.overlay.innerHTML,/<strong class="core-equipped" aria-label="Equipped">E<\/strong>/);
+ assert.equal(inventoryEntries(h.s).filter(i=>i.equipped).length,2);
+});

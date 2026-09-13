@@ -133,3 +133,13 @@ test('a scripted defeat can recover at the clinic and resumes only through the g
  assert.deepEqual(h.events.findLast(e=>e.type==='battle').ids,encounter.ids);assert.equal(h.progress.flags.CH2_SECURITY_RETRY_NEEDED,undefined);
  finishFairmontBattle(h.progress,encounter);assert.equal(h.progress.flags.CH2_CITY_SECURITY_HOSTILE,true);
 });
+
+
+test('Argus terminal warning happens once across computers and saved scenes while controls still unlock',()=>{
+ const h=harness(through('facility-enter'));
+ const first=mapFor(FACILITY_ZONES[0]+'-room-4').puzzle,second=mapFor(FACILITY_ZONES[1]+'-room-4').puzzle;
+ h.interact({...first,kind:'puzzle'});assert.equal(h.events.findLast(e=>e.type==='dialogue').lines.filter(l=>l.speaker==='A.R.G.U.S.').length,1);
+ assert.equal(h.progress.flags[first.flag],true);h.interact({...first,kind:'puzzle'});assert.equal(h.events.findLast(e=>e.type==='dialogue').lines.length,1);
+ const loaded=harness(JSON.parse(JSON.stringify(h.progress)));loaded.interact({...second,kind:'puzzle'});
+ assert.equal(loaded.events.findLast(e=>e.type==='dialogue').lines.length,1);assert.equal(loaded.progress.flags[second.flag],true);
+});

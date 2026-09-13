@@ -1,5 +1,7 @@
 // The supplied source sheet is preserved intact, including its labels and black matte.
 // Only these measured robot poses are drawn into the runtime texture.
+export const ARGUS_BATTLE_TEXTURE='fairmont-argus-sentinel-battle';
+export const ARGUS_BATTLE_URL=new URL('./assets/argus-sentinel-battle.png',import.meta.url).href;
 export const ARGUS_UNIT_TEXTURE='fairmont-argus-unit';
 export const ARGUS_UNIT_SOURCE={key:'fairmont-argus-unit-source',width:1448,height:1086,url:new URL('./assets/argus-manufactured-unit-sheet.png',import.meta.url).href};
 export const ARGUS_UNIT_FRAMES={
@@ -22,6 +24,7 @@ export function keyArgusUnitMatte(data,width,height){
 }
 
 export function loadArgusUnitSprites(scene){
+ if(!scene.textures.exists(ARGUS_BATTLE_TEXTURE))scene.load.image(ARGUS_BATTLE_TEXTURE,ARGUS_BATTLE_URL);
  if(!scene.textures.exists(ARGUS_UNIT_SOURCE.key))scene.load.image(ARGUS_UNIT_SOURCE.key,ARGUS_UNIT_SOURCE.url);
 }
 

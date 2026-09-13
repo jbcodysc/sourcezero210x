@@ -71,5 +71,5 @@ test('Sentinel is a stronger ordinary enemy without leaking into earlier reinfor
  const battle=createEncounter('argusSentinel',createChapterProgress(2,'Ada'));
  playerAction(battle,'guard');const result=enemyAction(battle,()=>.17);
  assert.equal(result.type,'help');assert.equal(battle.enemies.at(-1).id,'argusSentinel');
- assert.equal(battle.enemy.portrait,'fairmont-argus-unit');assert.equal(battle.enemy.frame,'portrait');
+ assert.equal(battle.enemy.portrait,'fairmont-argus-sentinel-battle');assert.equal(battle.enemy.frame,'__BASE');assert.notEqual(battle.enemy.portrait,battle.enemy.mapTexture);
 });
