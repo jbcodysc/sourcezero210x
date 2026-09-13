@@ -6,18 +6,25 @@ A browser RPG built with Phaser 3.90.0. Explore Bellwether, investigate the cour
 
 Play at https://jbcodysc.github.io/sourcezero210x/.
 
-Chapter 2 begins at Bellwether’s southern bus route after the water regulator is restored. You can also choose **Start at a chapter… → Fairmont Junction** in the main menu, select a save slot, and name your character. This creates a prepared level-10 save; replacing an occupied file requires confirmation.
+Chapter 2 begins at Bellwether’s southern bus route after the water regulator is restored. You can also choose **Start at a chapter… → Fairmont Junction** in the main menu, select a save slot, and name your character. This creates a prepared level-15 save with 2,000 credits and Chapter 1 equipment; replacing an occupied file requires confirmation.
 
-Fairmont is an industrial city with a partially demolished park in its northwest corner. Both dungeons have independent rooms entered through doors: 18 rooms across Whole Robotics' three floors and 30 across the five-zone Cenexis facility. Sparse encounters use stronger Chapter 2 machines, with separate map and battle art. The two drones in the scripted park attack retain their weaker stats.
+Fairmont is an industrial city with a partially demolished park in its northwest corner. Both dungeons have independent rooms entered through doors: 18 rooms across Whole Robotics' three floors and 32 across the five-zone Cenexis facility. Sparse encounters use stronger Chapter 2 machines, with separate map and battle art. The two drones in the scripted park attack retain their weaker stats.
 
 The two-story Switchyard Hotel has a lobby, a guest corridor, and your private room 204. Inspect its bed to advance the nighttime story and again after the market to reach morning. A facility defeat sends you to the clinic; its return elevator unlocks beside the final boss only after victory. Bolt & Bracket sells a replacement weapon drive and upgraded vest.
 
 The opening uses the supplied lab-coat character art, changes to the injured-arm poses after the courier fight, and switches to normal clothes after the week jump. Mira uses her supplied sheet. Ten additional supplied sheets animate Fairmont's townspeople and park protesters. Chapter 1 enemy artwork and combat balance are preserved.
 
 - Walk: WASD or arrow keys.
-- Interact/confirm: Z, Enter, or Space.
-- Notebook/back: Escape.
+- Interact: Z or Enter. Dialogue/menu confirm: Z, Enter, or Space.
+- Status / Items menu and back: Escape. Left/right switches tabs.
+- Quick pause/resume during exploration: Space.
 - Touch controls and sound toggle are included.
+
+The **Chapter 2 — Drone Facility** start creates a level-20 post-scan save beside the employee entrance, with the required keycard and all equipment available before A.R.G.U.S. Mandatory earlier events are complete; the optional Derek quest is unavailable and incomplete. The facility and boss remain unfinished.
+
+The shared Status/Items menu and bottom party pause HUD read the current save model. MP stays completely hidden until `magicUnlocked`, `capabilities.magic`, or the equivalent story flag is true. Items offers CHECK and USE; USE applies healing/equipment and requires acknowledging a result before another use. Pausing freezes world updates, scene timers, tweens, and physics without recreating the scene.
+
+The Bellwether interlude starts with one two-second black title card, then player-paced dialogue. Its saved line resumes after reload. Floor 5 adds Sentinel assembly and diagnostics rooms before the unchanged boss-room ID; five probabilistic patrol slots use only A.R.G.U.S. Sentinels. Its healing bed is removed; the Floor 3 recovery bay remains. Facility glass doors are solid wall interactables: approach, face them, and confirm. The shared `city/doors.mjs` behavior supplies collision, approach direction, destination facing, and the existing audio manager's electronic-door cue.
 
 The game has three save slots stored in the browser. Saves from a different website address do not transfer automatically.
 

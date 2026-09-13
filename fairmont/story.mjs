@@ -68,7 +68,7 @@ export const ARGUS_BROADCASTS = Object.freeze(Object.fromEntries(Object.entries(
   ]
 }).map(([floor,texts])=>[floor,texts.map(text=>({speaker:'A.R.G.U.S.',presentation:'argus',channel:'FACILITY BROADCAST',text}))])));
 export const argusBroadcastFlag=floor=>'CH2_ARGUS_BROADCAST_'+floor+'_SEEN';
-const facilityFloor=location=>Number(/^fairmont-facility-([1-5])(?:-room-[0-5])?$/.exec(location||'')?.[1]||0);
+const facilityFloor=location=>{const m=/^fairmont-facility-([1-5])(?:-room-([0-7]))?$/.exec(location||'');return m&&Number(m[2]||0)<=(m[1]==='5'?7:5)?Number(m[1]):0;};
 
 /** Pick only the current floor: an old save deeper in the facility does not replay missed earlier floors. */
 export function facilityBroadcast(s,location=s.location){
@@ -202,6 +202,7 @@ export function transition(s,event){
         effects.push('bellwether');
       }
       break;
+    case 'bellwether-title-seen':if(flag(s,'CH2_BELLWETHER_PENDING'))mark('CH2_BELLWETHER_TITLE_SEEN');break;
     case 'scene-step':{
       const active=resumeEvent(s),step=Number(event?.step);
       const limit=active?.type==='bellwether'?BELLWETHER_SCENE.length:active?.type==='scan'?SCAN_SCENE.length:0;

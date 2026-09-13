@@ -1,3 +1,4 @@
+import {doorApproach} from '../city/doors.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createFairmontScene,finishFairmontBattle,abortFairmontBattle} from '../fairmont/scene.mjs';
@@ -37,7 +38,7 @@ test('real door interactions load separate instances and enforce each room inter
  for(const location of [...ROOM_LOCATIONS,...HOTEL_LOCATIONS]){
   h.load(location);const m=mapFor(location)||hotelMapFor(location);
   for(const target of [...m.doors,...(m.elevator?[{...m.elevator,kind:'room-door'}]:[])]){
-   h.events.length=0;if(target.requiresFlag)delete h.progress.flags[target.requiresFlag];h.interact(target);
+   h.events.length=0;if(target.facilityDoor)Object.assign(h.scene.player,doorApproach(target));if(target.requiresFlag)delete h.progress.flags[target.requiresFlag];h.interact(target);
    if(target.requiresFlag){assert.equal(h.events.some(e=>e.type==='travel'),false,`${location}: locked door opened`);h.progress.flags[target.requiresFlag]=true;h.interact(target);}
    assert.equal(h.events.findLast(e=>e.type==='travel')?.location,target.target,`${location}: ${target.id}`);
   }
@@ -65,10 +66,10 @@ test('real boss interactions require a separate breaker action and release the f
  finishFairmontBattle(market.progress,{id:'karen'});assert.equal(market.progress.flags.CH2_KAREN_DEFEATED,true);assert.equal(market.progress.flags.CH2_WRM_CLEARED,undefined);
  market.interact({kind:'breaker'});assert.equal(market.progress.flags.CH2_WRM_CLEARED,true);assert.ok(market.events.some(e=>e.type==='power-down'));
  const facility=harness(through('facility-enter'));facility.load(dungeonRoomId(FACILITY_ZONES[4],5));const room=facility.scene.map;
- facility.interact({kind:'room-door',...room.elevator});assert.equal(facility.events.some(e=>e.type==='travel'),false);
+ Object.assign(facility.scene.player,doorApproach(room.elevator));facility.interact({kind:'room-door',...room.elevator});assert.equal(facility.events.some(e=>e.type==='travel'),false);
  facility.interact({kind:'argus'});assert.equal(facility.events.some(e=>e.type==='battle'),false);
  facility.progress.flags.CH2_CORE_SHUTTERS=true;facility.interact({kind:'argus'});assert.equal(facility.events.some(e=>e.type==='battle'),false);facility.finishEntrance();facility.finishDialogue();assert.equal(facility.events.findLast(e=>e.type==='battle').id,'argus');
- finishFairmontBattle(facility.progress,{id:'argus'});facility.interact({kind:'room-door',...room.elevator});assert.equal(facility.events.findLast(e=>e.type==='travel').location,FACILITY_ZONES[0]);
+ finishFairmontBattle(facility.progress,{id:'argus'});Object.assign(facility.scene.player,doorApproach(room.elevator));facility.interact({kind:'room-door',...room.elevator});assert.equal(facility.events.findLast(e=>e.type==='travel').location,FACILITY_ZONES[0]);
  facility.interact({kind:'argus'});assert.equal(facility.progress.flags.CH2_COMPLETE,true);assert.ok(facility.events.some(e=>e.type==='chapter-end'));
 });
 

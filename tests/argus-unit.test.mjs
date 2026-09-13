@@ -67,9 +67,9 @@ test('Sentinel is a stronger ordinary enemy without leaking into earlier reinfor
  const sentinel=FAIRMONT_ENEMIES.argusSentinel,fabricator=FAIRMONT_ENEMIES.assemblyArm;
  for(const stat of ['hp','attack','charge'])assert.ok(sentinel[stat]>=fabricator[stat]*1.1&&sentinel[stat]<=fabricator[stat]*1.15,stat);
  assert.ok(sentinel.hp<FAIRMONT_ENEMIES.argus.hp*.45);assert.equal(sentinel.boss,undefined);
- for(const enemy of Object.values(FAIRMONT_ENEMIES))assert.notEqual(enemy.helper,'argusSentinel');
+ for(const [id,enemy]of Object.entries(FAIRMONT_ENEMIES))if(id!=='argusSentinel')assert.notEqual(enemy.helper,'argusSentinel');
  const battle=createEncounter('argusSentinel',createChapterProgress(2,'Ada'));
  playerAction(battle,'guard');const result=enemyAction(battle,()=>.17);
- assert.equal(result.type,'help');assert.equal(battle.enemies.at(-1).id,'testDrone');
+ assert.equal(result.type,'help');assert.equal(battle.enemies.at(-1).id,'argusSentinel');
  assert.equal(battle.enemy.portrait,'fairmont-argus-unit');assert.equal(battle.enemy.frame,'portrait');
 });

@@ -1,3 +1,4 @@
+import {doorApproach} from '../city/doors.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -61,14 +62,14 @@ for (const base of [...MARKET_FLOORS,...FACILITY_ZONES]) {
    for(const location of ROOM_LOCATIONS.filter(id=>mapFor(id).baseId===base)){
     const map = mapFor(location), reachable = reachableGrid(location,map.arrival,map);
     const targets = [
-      ...map.doors.map(door=>[door.id,door]),
+      ...map.doors.map(door=>[door.id,door.facilityDoor?doorApproach(door):door]),
       ...map.supply.map(supply => [supply.id,supply]),
       ...map.spawns.map(spawn => [spawn.id,spawn]),
       ...map.logs.map(log=>['log '+log.index,log]),
       ...(map.puzzle ? [['puzzle',map.puzzle]] : []),
       ...(map.rest ? [['rest station',map.rest]] : []),
       ...(map.boss ? [['boss',map.boss]] : []),
-      ...(map.elevator ? [['elevator',map.elevator]] : []),
+      ...(map.elevator ? [['elevator',map.elevator.facilityDoor?doorApproach(map.elevator):map.elevator]] : []),
     ];
     for (const [name,point] of targets) assert.ok(reachable(point), `${location}: ${name} is obstructed or disconnected`);
     for(const door of map.doors)assert.ok(worldWalkable(door.target,door.position.x,door.position.y),`${location}: ${door.id} exits into a blocked destination`);
@@ -77,13 +78,13 @@ for (const base of [...MARKET_FLOORS,...FACILITY_ZONES]) {
 }
 
 test('rooms load as distinct enclosed areas connected only through door transitions',()=>{
- assert.equal(ROOM_LOCATIONS.length,48);
+ assert.equal(ROOM_LOCATIONS.length,50);
  for(const base of [...MARKET_FLOORS,...FACILITY_ZONES]){
   const seen=new Set([base]),queue=[base];
   for(let head=0;head<queue.length;head++)for(const door of mapFor(queue[head]).doors){
    if(mapFor(door.target)?.baseId===base&&!seen.has(door.target)){seen.add(door.target);queue.push(door.target);}
   }
-  assert.equal(seen.size,6,base+' has an unreachable room');
+  assert.equal(seen.size,base==='fairmont-facility-5'?8:6,base+' has an unreachable room');
   for(const id of seen){const map=mapFor(id);assert.equal(map.rooms.length,1);assert.equal(map.floor.length,1);assert.equal(map.corridors.length,0);assert.equal(map.id,id);assert.equal(worldWalkable(id,0,600),false);assert.equal(worldWalkable(id,1500,600),false);}
  }
 });
@@ -92,7 +93,7 @@ test('expanded market patrols and sparse facility encounters leave safe foyers a
  assert.equal(ROOM_LOCATIONS.map(mapFor).filter(m=>m.isMarket).flatMap(m=>m.spawns).length,Math.round(11*1.75));
  for(const base of [...MARKET_FLOORS,...FACILITY_ZONES]){
   const maps=ROOM_LOCATIONS.filter(id=>mapFor(id).baseId===base).map(mapFor);
-  assert.ok(maps.flatMap(m=>m.spawns).length<=(mapFor(base).isMarket?7:4));
+  assert.ok(maps.flatMap(m=>m.spawns).length<=(mapFor(base).isMarket?7:base==='fairmont-facility-5'?5:4));
   assert.ok(maps.every(m=>m.spawns.length<=(m.isMarket?2:1)));
   assert.equal(mapFor(base).spawns.length,0,'stairs arrive into a safe foyer');
   assert.ok(maps.some(m=>m.supply.some(s=>s.kind==='snack')&&m.spawns.length===0));

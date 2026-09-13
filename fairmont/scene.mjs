@@ -1,3 +1,5 @@
+import {activateDoor,canInteractDoor} from '../city/doors.mjs';
+import {drawElectronicDoor} from './door-art.mjs';
 import {CITY,ROADS,PARK,PARK_DETAILS,ARRIVAL,BUILDINGS,CITY_NPC_POINTS,CITY_FIXTURES,INTERIORS,MARKET_FLOORS,FACILITY_ZONES,HOTEL,mapFor,hotelMapFor,canonicalLocation,retireRoomSpawns,worldWalkable,nearestWalkable,citySpawns,spawnEvents,markDefeated,chaseWaypoint,rearServiceEntrance} from './world.mjs';
 import {buildingGeometry} from './building-geometry.mjs';
 import {migrateCompactCityLayout} from './city-density.mjs';
@@ -59,12 +61,12 @@ export function createFairmontScene(api){
    if(pending?.type?.startsWith('argus-')||broadcast){this.arrival=true;this.locked=true;}
    sound.setMode(pending?.type?.startsWith('argus-')?'argus-entrance':explorationMusicMode(this));sound.fountain(Infinity);
    if(this.map)this.createComplex();else if(this.location==='fairmont')this.createJunction();else if(this.hotel)this.createHotel();else this.createInterior();
-   const point=nearestWalkable(this.location,this.entry,this.npcs,(x,y)=>this.canStand(x,y,this.npcs));this.player=actor(this,point.x,point.y,0,110,true);this.beginRecovery();
+   const point=nearestWalkable(this.location,this.entry,this.npcs,(x,y)=>this.canStand(x,y,this.npcs));this.player=actor(this,point.x,point.y,0,110,true);if(this.entry?.facing)this.player.dir=this.entry.facing;this.beginRecovery();
    const size=this.map||this.hotel|| (this.location==='fairmont'?CITY:VIEW);this.cameras.main.setBounds(0,0,size.width,size.height);this.cameras.main.startFollow(this.player.sprite,true,1,1);this.cameras.main.centerOn(point.x,point.y);
    this.keys=this.input.keyboard.addKeys({up:'W',down:'S',left:'A',right:'D',up2:'UP',down2:'DOWN',left2:'LEFT',right2:'RIGHT'});
-   this.onKey=e=>{if(e.repeat||this.cutscene||this.transitioning||this.arrival)return;const k=e.key.toLowerCase();if(this.menu||this.dialog?.choiceVisible)chooseKeyboardButton(e);if(['z','enter',' '].includes(k)){e.preventDefault();if(this.menu||this.dialog?.choiceVisible)(document.activeElement?.closest('#overlay button')||$('#overlay button:not(:disabled)'))?.click();else this.interact();}else if(k==='escape'){e.preventDefault();if(this.dialog){if(!finishText(this))this.advanceDialogue();}else if(this.menu)this.closeMenu();else this.openJournal();}};
-   this.input.keyboard.addCapture([13,32,37,38,39,40,90]);this.input.keyboard.on('keydown',this.onKey);this.onResize=()=>this.positionDialogue();window.addEventListener('resize',this.onResize);
-   this.events.once('shutdown',()=>{this.writer=null;this.input.keyboard.off('keydown',this.onKey);window.removeEventListener('resize',this.onResize);resetControls();});
+   this.installCoreUI();
+   this.input.keyboard.addCapture([13,32,37,38,39,40,90]);this.onResize=()=>this.positionDialogue();window.addEventListener('resize',this.onResize);
+   this.events.once('shutdown',()=>{this.writer=null;window.removeEventListener('resize',this.onResize);resetControls();});
    if(!p.visited.includes(this.location))p.visited.push(this.location);remember(this);this.cameras.main.fadeIn(250,12,18,32);$('#footer-hint').textContent='Listen to the city. The useful things are rarely on the signs.';
    this.time.delayedCall(300,()=>this.resumeStory());
   }
@@ -182,6 +184,7 @@ export function createFairmontScene(api){
    }
   }
   drawRoomDoor(door){
+   if(door.facilityDoor){drawElectronicDoor(this,door,door.locked||door.requiresFlag&&!getProgress().flags[door.requiresFlag]);return;}
    const side=door.side||'north',horizontal=['north','south'].includes(side);
    const x=door.x,y=door.y,locked=door.locked||(door.requiresFlag&&!getProgress().flags[door.requiresFlag]);
    if(door.stairs||door.visual==='stairs'){
@@ -221,7 +224,7 @@ export function createFairmontScene(api){
    for(const item of m.supply){if(!p.flags[item.id])this.prop('crates',item.x,item.y,.9);this.interactables.push({...item,kind:'supply',name:p.flags[item.id]?'Check the empty locker':'Open the supply locker',range:110});}
    for(const log of m.logs||[]){this.prop('console',log.x,log.y,.9);this.interactables.push({...log,id:log.id||'log-'+log.index,kind:'log',name:'Read the employee terminal',range:105});}
    if(m.rest){this.prop('bed',m.rest.x,m.rest.y,1);this.label(m.rest.x,m.rest.y-120,'FIRST AID',17,'#b6f4cf');this.interactables.push({...m.rest,kind:'rest',id:'recovery',name:'Use employee first aid',range:115});}
-   if(m.elevator){this.drawRoomDoor({...m.elevator,label:'SERVICE ELEVATOR'});this.interactables.push({...m.elevator,kind:'room-door',id:'boss-elevator',name:p.flags.CH2_ARGUS_DEFEATED?'Take elevator to the entrance':'Check the locked elevator',range:115});}
+   if(m.elevator){this.drawRoomDoor({...m.elevator,label:'SERVICE ELEVATOR'});this.interactables.push({...m.elevator,kind:'room-door',id:'boss-elevator',name:p.flags.CH2_ARGUS_DEFEATED?'Take elevator to the entrance':'Check the locked elevator',range:180});}
    if(m.boss&&m.isMarket){this.prop('console',m.boss.x,m.boss.y,2.1);this.interactables.push({...m.boss,id:'breaker',kind:'breaker',name:'Examine the main breaker and primary lines',range:145});}
    if(m.boss&&!m.isMarket){this.prop('droneDock',m.boss.x-155,m.boss.y-90,1.5);this.prop('assemblyArm',m.boss.x+145,m.boss.y-90,1.6);this.prop('console',m.boss.x,m.boss.y,.85);this.interactables.push({...m.boss,id:'argus',kind:'argus',name:p.flags.CH2_ARGUS_DEFEATED?'Access the control archive':'Examine the integration terminal',range:150});}
    if(m.isMarket&&p.flags.CH2_WRM_CLEARED){this.add.rectangle(0,0,m.width,m.height,0x101e39,.4).setOrigin(0).setDepth(10000);for(const r of m.floor)this.add.circle(r.x+80,r.y+20,90,0xf5593c,.2).setDepth(10001);this.label(m.width/2,100,'EMERGENCY POWER',20,'#ffb98a');}
@@ -230,7 +233,7 @@ export function createFairmontScene(api){
   canStand(x,y,blockers=[]){return worldWalkable(this.location,x,y,blockers)&&!this.obstacles.some(r=>x>=r.x-20&&x<=r.x+r.w+20&&y>=r.y-15&&y<=r.y+r.h+15);}
   worldSlots(){return this.slots||[];}
   addPatrol(slot){
-   const kinds=enemiesFor(this.map,getProgress());if(!kinds.includes(slot.kind))slot.kind=kinds[Math.floor(Math.random()*kinds.length)];
+   const kinds=enemiesFor(this.map,getProgress());if(!kinds.length){slot.enemy=null;return;}if(!kinds.includes(slot.kind))slot.kind=kinds[Math.floor(Math.random()*kinds.length)];
    const x=slot.enemy?.x||slot.x,y=slot.enemy?.y||slot.y,type=FAIRMONT_ENEMIES[slot.kind];
    if(slot.kind==='argusSentinel'){
     this.enemies.set(slot.id,{...createArgusUnitActor(this,x,y),id:slot.id,kind:slot.kind,wait:300,target:null,stuck:0});return;
@@ -243,7 +246,7 @@ export function createFairmontScene(api){
    }else this.addEnemy({id:slot.id,kind:slot.kind,x,y});
   }
   update(time,delta){
-   advanceText(this,delta);if(!this.player)return;this.updateOcclusion();if(this.location==='fairmont'){const f=PARK_DETAILS.fountain;sound.fountain(Math.hypot(this.player.x-f.x,this.player.y-f.y));if(this.fountainSpray){this.fountainClock+=delta;const g=this.fountainSpray;g.clear();g.lineStyle(3,0xc5f1f6,.7);for(let i=-2;i<=2;i++){const t=(this.fountainClock/1000+i*.19)%1;g.lineBetween(f.x+i*8,f.y-110,f.x+i*(18+t*8),f.y-75+t*30);}}}
+   if(this.coreUI?.mode)return;advanceText(this,delta);if(!this.player)return;this.updateOcclusion();if(this.location==='fairmont'){const f=PARK_DETAILS.fountain;sound.fountain(Math.hypot(this.player.x-f.x,this.player.y-f.y));if(this.fountainSpray){this.fountainClock+=delta;const g=this.fountainSpray;g.clear();g.lineStyle(3,0xc5f1f6,.7);for(let i=-2;i<=2;i++){const t=(this.fountainClock/1000+i*.19)%1;g.lineBetween(f.x+i*8,f.y-110,f.x+i*(18+t*8),f.y-75+t*30);}}}
    if(this.cutscene){if(this.writer?.done){this.cutscene.hold+=Math.min(delta,100);if(this.cutscene.hold>=(this.cutscene.pages[this.cutscene.index].hold||2300))this.advanceNarration();}return;}
    if(this.locked){for(const n of [this.player,...this.npcs]){n.walking=false;n.talking=this.dialog?.activeSpeaker===n;drawActor(n,delta);}this.updateOcclusion();return;}
    if(this.engageTouchingEnemy())return;const playerContactBefore=encounterBounds(this.player);const dt=Math.min(delta,45)/1000,k=this.keys,dx=Number(k.right.isDown||k.right2.isDown||control.right)-Number(k.left.isDown||k.left2.isDown||control.left),dy=Number(k.down.isDown||k.down2.isDown||control.down)-Number(k.up.isDown||k.up2.isDown||control.up),step=normalizedMovement(dx,dy,this.map?305:335,dt);
@@ -252,11 +255,11 @@ export function createFairmontScene(api){
    if(this.slots){this.spawnClock+=delta;const camera=this.cameras.main;if(this.spawnClock>400){this.spawnClock=0;for(const e of spawnEvents(this.slots,this.player,{x:camera.scrollX,y:camera.scrollY,w:VIEW.width,h:VIEW.height},!!this.map||getProgress().flags.CH2_CITY_SECURITY_HOSTILE)){if(e.type==='spawn')this.addPatrol(this.slots.find(s=>s.id===e.id));else this.removeEnemy(e.id);}}
     for(const enemy of this.enemies.values()){const enemyContactBefore=encounterBounds(enemy),slot=this.slots.find(s=>s.id===enemy.id);if(!slot?.enemy){this.removeEnemy(enemy.id);continue;}const distance=Math.hypot(enemy.x-this.player.x,enemy.y-this.player.y);if(distance<610){enemy.navClock=(enemy.navClock||0)+delta;if(!enemy.target||enemy.navClock>500||Math.hypot(enemy.target.x-enemy.x,enemy.target.y-enemy.y)<35){enemy.target=chaseWaypoint(this.location,enemy,this.player);enemy.navClock=0;}enemy.wait=0;}this.roam(enemy,{x:0,y:0,w:this.map?.width||CITY.width,h:this.map?.height||CITY.height},delta,dt,distance<610?370:58);Object.assign(slot.enemy,{x:enemy.x,y:enemy.y});if(!postBattleImmune(state)&&sweptTouchingBounds(playerContactBefore,encounterBounds(this.player),enemyContactBefore,encounterBounds(enemy))){this.beginBattle(enemy.kind,enemy.id);return;}}
    }
-   this.updateOcclusion();const near=this.nearest();$('#prompt').hidden=!near;if(near)$('#prompt').innerHTML='<b>Z / ENTER</b>'+escape(near.kind==='npc'?'Talk to '+near.name:near.name);
+   this.updateOcclusion();const near=this.nearest();$('#prompt').hidden=!near||!!near.facilityDoor;if(near)$('#prompt').innerHTML='<b>Z / ENTER</b>'+escape(near.kind==='npc'?'Talk to '+near.name:near.name);
   }
   say(text,speaker=this.player,done=()=>{}){this.showDialogue([{speaker:speaker===this.player?getProgress().name:speaker.name||'Notice',side:speaker===this.player?'hero':'npc',text}],speaker,done);}
   interact(){
-   if(this.cutscene||this.arrival||this.transitioning)return;if(this.dialog){if(!finishText(this))this.advanceDialogue();return;}if(this.locked)return;const near=this.nearest();if(!near)return;const p=getProgress(),m=this.map;
+   if(this.dialog){if(!finishText(this))this.advanceDialogue();return;}if(this.cutscene||this.arrival||this.transitioning)return;if(this.locked)return;const near=this.nearest();if(!near)return;const p=getProgress(),m=this.map;
    if(near.kind==='npc'){const plan=story.conversation(near.id,p);if(plan){this.showDialogue(plan.lines,near.speaker,()=>{if(plan.event){const result=this.applyEvent(plan.event);if(result.changed)this.afterEvent(plan.event);}if(['hotel-clerk','barista','vendor','diner-owner','nurse'].includes(near.id))this.openFairmontService(near.id);});}else if(['vendor','diner-owner','nurse'].includes(near.id)){if(p.flags.CH2_DAY2&&near.id==='diner-owner')this.say(story.FLAVOR.day2[1],near.speaker,()=>this.openFairmontService(near.id));else this.openFairmontService(near.id);}else this.say(near.flavor||({resident:'My work robot paused and looked at me yesterday. Then it finished the dishes. I wish my brother were that focused.',bookseller:'Radio Hut keeps the manuals nobody else stocks. Harlan understands the old systems and the new excuses.',dispatcher:'Radio Hut is in the central commercial block. The big Cenexis complex is north-east. Please do not ask me to recommend either employer.'}[near.id]||'Another shift, another afternoon.'),near.speaker);return;}
    if(near.kind==='flavor'){this.say(near.text);return;}
    if(near.kind==='building'){const b=near.building;if(b.id==='market'){this.say(p.flags.CH2_WRM_CLEARED?'Closed while the overnight damage is investigated.':this.night?'The front doors are locked. Security mode is active.':'The glossy showroom promises convenience in every aisle. The stockrooms and service floors are employees-only.');return;}if(b.id==='facility'){this.say('Visitor access requires an appointment. The employee entrance is behind the building.');return;}const gate=b.id==='cafe'?'coffee':b.id==='apartment'?'apartments':b.id;if(!story.canEnter(p,gate)){this.say('Closed until morning.');return;}this.travel('fairmont-'+b.id,{x:770,y:850});return;}
@@ -265,8 +268,10 @@ export function createFairmontScene(api){
    if(near.kind==='facility-rear'){if(!story.canEnter(p,'facility')){this.say('The employee reader rejects ordinary service keys. A Cenexis credential is required.');return;}this.applyEvent('facility-enter');this.travel(FACILITY_ZONES[0],mapFor(FACILITY_ZONES[0]).arrival);return;}
    if(near.kind==='sleep'){this.sleep();return;}
    if(near.kind==='room-door'){
+    if(near.facilityDoor&&!canInteractDoor(this.player,near))return;
     if(near.locked){this.say('Occupied. Your key is for room 204.');return;}
     if(near.requiresFlag&&!p.flags[near.requiresFlag]){this.say(near.requiresFlag==='CH2_ARGUS_DEFEATED'?'A.R.G.U.S. has locked the exit controls. The service elevator beside the integration chamber will be available once its security control is defeated.':'The door is locked by a local safety interlock. Find this department’s control terminal.');return;}
+    if(near.facilityDoor){activateDoor(this.player,near,{flags:p.flags,sound,travel:(target,position)=>this.travel(target,position)});return;}
     if(near.target)this.travel(near.target,near.position||mapFor(near.target)?.arrival||hotelMapFor(near.target)?.arrival||ARRIVAL);return;
    }
    if(near.kind==='puzzle'){if(!p.flags[near.flag]){p.flags[near.flag]=true;p.notes.push(near.text);save();}const lines=[{speaker:'Control terminal',text:near.text}];if(!p.flags.CH2_ARGUS_DEFEATED)lines.push({speaker:'A.R.G.U.S.',presentation:'argus',channel:'FACILITY BROADCAST',text:'Work-cell routing updated. Unscheduled access noted.'});this.showDialogue(story.dialogueLines(lines,p),this.player);return;}
@@ -355,9 +360,11 @@ export function createFairmontScene(api){
    this.showDialogue(plan.lines.slice(step),boss,done);
   }
   advanceDialogue(){
+   if(this.storyDialogue&&this.dialog)this.applyEvent({type:'scene-step',step:this.storyDialogue.offset+this.dialog.index+1});
    if(this.argusDialogue&&this.dialog)this.applyEvent({type:'argus-dialogue-step',step:this.argusDialogueOffset+this.dialog.index+1});
    if(this.facilityBroadcast&&this.dialog)this.applyEvent({type:'argus-broadcast-step',step:this.facilityBroadcastOffset+this.dialog.index+1});
    super.advanceDialogue();
+   if(this.storyDialogue&&this.stationAgent&&this.dialog&&this.storyDialogue.offset+this.dialog.index>=7&&!this.stationAgent.leaving){this.stationAgent.leaving=true;this.tweens.add({targets:[this.stationAgent.sprite,this.stationAgent.shadow],x:250,y:930,alpha:0,duration:1500});}
   }
   renderNarration(){super.renderNarration();const next=$('#overlay [data-action="narration-next"]');if(next)next.hidden=true;if(this.stationAgent&&this.cutscene){const step=(this.cutscene.storyOffset||0)+this.cutscene.index;if(step>=7&&!this.stationAgent.leaving){this.stationAgent.leaving=true;this.tweens.add({targets:[this.stationAgent.sprite,this.stationAgent.shadow],x:250,y:930,alpha:0,duration:1500});}}}
   advanceNarration(){
@@ -366,20 +373,26 @@ export function createFairmontScene(api){
    if(cut.index<cut.pages.length)this.renderNarration();else{this.cutscene=null;this.writer=null;cut.done();}
   }
   startStoryNarration(lines,step,done){
-   const offset=Math.max(0,Math.min(lines.length,step||0));
-   if(offset===lines.length){done();return;}
-   this.startNarration(lines.slice(offset).map(l=>({text:l.speaker+'\n'+l.text,hold:2600})),done);
-   this.cutscene.storyCheckpoint=true;this.cutscene.storyOffset=offset;
-   const button=$('#overlay [data-action="narration-next"]');if(button)button.hidden=true;
+   const offset=Math.max(0,Math.min(lines.length,step||0));if(offset===lines.length){done();return;}
+   this.storyDialogue={offset};
+   this.showDialogue(story.dialogueLines(lines.slice(offset),getProgress()),this.player,()=>{this.storyDialogue=null;done();});
   }
   runBellwether(){
-   const pending=story.resumeEvent(getProgress());if(pending?.type!=='bellwether')return;
-   this.locked=true;this.arrival=true;this.player.sprite.setVisible(false);this.player.shadow.setVisible(false);this.cameras.main.stopFollow();this.cameras.main.setScroll(0,0);sound.setMode('narration');
-   const backdrop=this.add.image(0,0,'interiors','room-4').setOrigin(0).setDisplaySize(VIEW.width,VIEW.height).setDepth(20000);const officer=actor(this,660,610,1,110),agent=actor(this,250,800,0,112);this.stationAgent=agent;officer.sprite.setDepth(20010);agent.sprite.setDepth(20011);officer.shadow.setDepth(20009);agent.shadow.setDepth(20009);this.label(768,105,'MEANWHILE, BACK IN BELLWETHER',28).setDepth(20012);
-   if(pending.step>0){agent.sprite.setPosition(900,655);agent.shadow.setPosition(900,653);}else this.tweens.add({targets:[agent.sprite,agent.shadow],x:900,y:655,duration:1800});
-   if(pending.step>=7){agent.leaving=true;agent.sprite.setVisible(false);agent.shadow.setVisible(false);}
-   this.startStoryNarration(story.BELLWETHER_SCENE,pending.step,()=>{backdrop.destroy();officer.sprite.destroy();officer.shadow.destroy();agent.sprite.destroy();agent.shadow.destroy();this.applyEvent('bellwether-finished');this.arrival=false;const context=getProgress().chapter2HotelContext;this.travel(HOTEL.bedroom,context?.location===HOTEL.bedroom?context.position:hotelMapFor(HOTEL.bedroom).arrival);});
+   const pending=story.resumeEvent(getProgress());if(pending?.type!=='bellwether'||this.bellwetherRunning)return;
+   this.bellwetherRunning=true;this.locked=true;this.arrival=true;resetControls();this.player.sprite.setVisible(false);this.player.shadow.setVisible(false);this.cameras.main.stopFollow();this.cameras.main.setScroll(0,0);sound.setMode('narration');$('#scene-status').hidden=true;$('#prompt').hidden=true;
+   const show=()=>{
+    // Index zero in legacy saves was the title sentence; the title now has its own card.
+    const step=Math.max(1,story.resumeEvent(getProgress())?.step||0);
+    const backdrop=this.add.image(0,0,'interiors','room-4').setOrigin(0).setDisplaySize(VIEW.width,VIEW.height).setDepth(20000);
+    const officer=actor(this,660,610,1,110),agent=actor(this,900,655,0,112);this.stationAgent=agent;officer.sprite.setDepth(20010);agent.sprite.setDepth(20011);officer.shadow.setDepth(20009);agent.shadow.setDepth(20009);
+    if(step>=7){agent.leaving=true;agent.sprite.setVisible(false);agent.shadow.setVisible(false);}
+    this.startStoryNarration(story.BELLWETHER_SCENE,step,()=>{backdrop.destroy();officer.sprite.destroy();officer.shadow.destroy();agent.sprite.destroy();agent.shadow.destroy();this.applyEvent('bellwether-finished');this.arrival=false;this.bellwetherRunning=false;const context=getProgress().chapter2HotelContext;this.travel(HOTEL.bedroom,context?.location===HOTEL.bedroom?context.position:hotelMapFor(HOTEL.bedroom).arrival);});
+   };
+   if(getProgress().flags.CH2_BELLWETHER_TITLE_SEEN||pending.step>0){show();return;}
+   this.applyEvent('bellwether-title-seen');$('#overlay').className='';$('#overlay').innerHTML='<section class="bellwether-title">MEANWHILE IN BELLWETHER</section>';
+   this.time.delayedCall(2000,show);
   }
+
   runScan(){
    const pending=story.resumeEvent(getProgress());if(pending?.type!=='scan')return;
    this.locked=true;this.arrival=true;resetControls();if(getProgress().flags.CH2_DEREK_LOCKED)this.removeCitizen('derek');
@@ -389,9 +402,9 @@ export function createFairmontScene(api){
   }
   beginBattle(id,spawnId=null,ids=null){if(this.transitioning)return;super.beginBattle(id,spawnId);state.origin.scene='Fairmont';state.encounter.ids=ids;state.encounter.checkpoint={scene:'Fairmont',location:'fairmont-clinic',position:{x:770,y:850}};}
   travel(location,position,extra={}){if(this.transitioning)return;if(this.map&&location!==this.location)retireRoomSpawns(this.slots);super.travel(location,position,extra);}
-  openJournal(){super.openJournal();const box=$('#overlay .notebook');if(box){box.querySelector('h2').textContent=getProgress().flags.CH2_COMPLETE?'The Northbridge connection':'Fairmont Junction';const meta=box.querySelector('.notebook-meta');meta.textContent=getProgress().xp+' XP · Chapter 2';if(getProgress().inventory.includes('caramel-macchiato'))box.querySelector('.menu-row').insertAdjacentHTML('afterbegin','<button data-action="drink-coffee">Drink coffee · 15 HP</button>');box.querySelector('.notes').insertAdjacentHTML('afterbegin','<p><b>'+escape(story.objective(getProgress()))+'</b></p>');}}
+
   showChapterEnd(){this.locked=true;this.menu='chapter-end';screenMode('game');$('#overlay').className='menu-ui';$('#overlay').innerHTML='<section class="notebook"><small>CHAPTER 2 COMPLETE</small><h2>The Northbridge connection.</h2><p>The courier found you. Fairmont confirmed it. The next rollout leads to Northbridge—and an old friend who lives there.</p><p>Your progress is saved. Chapter 3 is still ahead.</p><button data-action="menu-close">Keep exploring Fairmont</button><button data-action="title">Save and return to title</button></section>';save();}
-  handleAction(action){if(this.cutscene||this.arrival)return;if(action==='drink-coffee'){const p=getProgress(),i=p.inventory.indexOf('caramel-macchiato');if(i>=0&&p.hp<p.maxHp){p.inventory.splice(i,1);p.hp=Math.min(p.maxHp,p.hp+15);save();}this.openJournal();return;}if(action==='fm-room-key'){if(this.serviceId==='hotel-clerk'){this.closeMenu();this.say('Room 204 is upstairs. Turn the key, settle in, and check your bed when you want to rest.');}return;}if(action.startsWith('fm-')){if(this.menu!=='fairmont-service')return;const kind=action.slice(3);let message;if(kind==='coffee'){if(this.serviceId!=='barista')return;const result=this.applyEvent('buy-coffee');message=result.effects.includes('coffee-bought')?'One caramel macchiato. Best delivered while it is still warm.':'You need '+story.COFFEE_PRICE+' credits.';}else if(['snack','resonant-drive','laminate-vest'].includes(kind)){if(kind!=='snack'&&this.serviceId!=='vendor')return;message=buy(getProgress(),kind);}else return;save();this.openFairmontService(this.serviceId,message);return;}super.handleAction(action);}
+  handleAction(action){if(this.coreUI?.action(action))return;if(action==='dialogue-next'&&this.dialog){this.interact();return;}if(this.cutscene||this.arrival)return;if(action==='drink-coffee'){const p=getProgress(),i=p.inventory.indexOf('caramel-macchiato');if(i>=0&&p.hp<p.maxHp){p.inventory.splice(i,1);p.hp=Math.min(p.maxHp,p.hp+15);save();}this.openJournal();return;}if(action==='fm-room-key'){if(this.serviceId==='hotel-clerk'){this.closeMenu();this.say('Room 204 is upstairs. Turn the key, settle in, and check your bed when you want to rest.');}return;}if(action.startsWith('fm-')){if(this.menu!=='fairmont-service')return;const kind=action.slice(3);let message;if(kind==='coffee'){if(this.serviceId!=='barista')return;const result=this.applyEvent('buy-coffee');message=result.effects.includes('coffee-bought')?'One caramel macchiato. Best delivered while it is still warm.':'You need '+story.COFFEE_PRICE+' credits.';}else if(['snack','resonant-drive','laminate-vest'].includes(kind)){if(kind!=='snack'&&this.serviceId!=='vendor')return;message=buy(getProgress(),kind);}else return;save();this.openFairmontService(this.serviceId,message);return;}super.handleAction(action);}
  };
 }
 export function finishFairmontBattle(progress,encounter){const event=encounter.id==='karen'?'karen-defeated':encounter.id==='argus'?'argus-defeated':encounter.id==='junctionGuard'&&encounter.ids?.join(',')==='junctionGuard,scriptedScanDrone,scriptedScanDrone'&&progress.flags.CH2_PLAYER_SCANNED&&!progress.flags.CH2_CITY_SECURITY_HOSTILE?'security-defeated':null;if(event)Object.assign(progress,story.transition(progress,event).state);}

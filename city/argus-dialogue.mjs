@@ -19,5 +19,5 @@ export function argusPanelMarkup(line){
   '<path fill="#0c151b" d="M236 178 H1206 L1242 207 V265 L1180 305 H236 Z"/></g></svg>'+
   '<div class="argus-heading"><span class="dialog-speaker">A.R.G.U.S.</span></div>'+
   '<p class="typed-copy"><span class="type-reserve" aria-hidden="true">'+argusTextMarkup(text)+'</span><span class="type-visible" data-typing aria-hidden="true"></span><span class="sr-only">'+escape(line.text)+'</span></p>'+
-  '<button data-action="dialogue-next" aria-label="Continue A.R.G.U.S. transmission">ENTER <span aria-hidden="true">▾</span></button></section>';
+  '<button data-action="dialogue-next" aria-label="Continue A.R.G.U.S. transmission"><span aria-hidden="true">▾</span></button></section>';
 }

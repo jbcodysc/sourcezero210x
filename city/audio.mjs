@@ -73,6 +73,13 @@ export class CityAudio {
   if(voice==='argus'){this.lastLetter=c.currentTime;this.argusLetter(character);return;}
   this.lastLetter=c.currentTime;const osc=c.createOscillator(),gain=c.createGain();osc.type='triangle';osc.frequency.value=voice===4?410:640+(character.codePointAt(0)%7)*32+voice*70;gain.gain.setValueAtTime(.024,c.currentTime);gain.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.035);osc.connect(gain);gain.connect(c.destination);osc.onended=()=>{osc.disconnect();gain.disconnect();};osc.start();osc.stop(c.currentTime+.04);
  }
+ automaticDoor(){
+  const c=this.context;if(!this.enabled||!this.visible||c?.state!=='running')return;
+  // A short sensor chirp followed by a descending servo and air release.
+  for(const [type,from,to,offset,duration,volume]of [['sine',1280,1680,0,.09,.028],['triangle',310,85,.08,.42,.055]]){
+   const node=c.createOscillator(),gain=c.createGain(),start=c.currentTime+offset;node.type=type;node.frequency.setValueAtTime(from,start);node.frequency.exponentialRampToValueAtTime(to,start+duration);gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(volume,start+.015);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);node.connect(gain);gain.connect(c.destination);const playing={key:'automatic-door',node,gain};this.playingEffects.add(playing);node.onended=()=>{node.disconnect();gain.disconnect();this.playingEffects.delete(playing);};node.start(start);node.stop(start+duration+.01);
+  }
+ }
  argusLetter(character){
   const c=this.context,t=c.currentTime,code=character.codePointAt(0),pitch=[554,659,740,831,988][code%5];
   // Short stepped carrier plus a quiet high overtone: an electronic intercom,
