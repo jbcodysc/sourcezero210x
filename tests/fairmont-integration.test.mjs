@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createFairmontScene,finishFairmontBattle,abortFairmontBattle} from '../fairmont/scene.mjs';
 import {createChapterProgress} from '../city/chapter-start.mjs';
 import {HOTEL,HOTEL_LOCATIONS,ROOM_LOCATIONS,MARKET_FLOORS,FACILITY_ZONES,mapFor,hotelMapFor,dungeonRoomId} from '../fairmont/world.mjs';
-import {transition,timeOfDay,resumeEvent} from '../fairmont/story.mjs';
+import {transition,timeOfDay,resumeEvent,ARGUS_SCENE} from '../fairmont/story.mjs';
 
 function harness(progress=createChapterProgress(2)){
  const events=[],state={};
@@ -110,7 +110,7 @@ test('scene resumes alarm, flight, landing, and dialogue checkpoints in the inte
   assert.equal(h.events.some(e=>e.type==='battle'),false);
   h.finishEntrance();
   const lines=h.events.findLast(e=>e.type==='dialogue').lines;
-  assert.equal(lines.length,type==='argus-dialogue'?2:4);
+  assert.equal(lines.length,ARGUS_SCENE.length-(type==='argus-dialogue'?step:0));
   h.finishDialogue();assert.equal(h.events.findLast(e=>e.type==='battle').id,'argus');
  }
 });

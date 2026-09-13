@@ -1,0 +1,11 @@
+/* More specific than regular conversation rules: A.R.G.U.S. owns the top edge. */
+#overlay .dialog-box.dialog-argus{left:1%;top:1.5%;right:auto;bottom:auto;width:98%;max-width:none;aspect-ratio:5.3;height:auto;max-height:none;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent;overflow:visible;isolation:isolate;container-type:normal}
+.dialog-argus .argus-frame{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+.dialog-argus .argus-heading{position:absolute;left:18.5%;top:7%;width:22%;height:17%;display:flex;align-items:center}
+#overlay .dialog-argus .dialog-speaker{margin:0;font:700 clamp(12px,2.15cqw,27px)/1 'Space Mono',monospace;font-style:normal;letter-spacing:.08em;color:#ffdf87;text-shadow:0 1px #715826;white-space:nowrap}
+#overlay .dialog-argus .typed-copy{position:absolute;left:12%;right:12%;top:34%;margin:0;font:700 clamp(11px,2.02cqw,25px)/1.25 'Space Mono',monospace;letter-spacing:.018em;color:#eff6f8;text-shadow:0 1px #09131b;overflow-wrap:anywhere}
+.dialog-argus .argus-cyan{color:#4ceeff}.dialog-argus .argus-gold{color:#ffdc86}
+#overlay .dialog-argus button{position:absolute;right:11%;bottom:6.5%;margin:0;padding:2px 6px;border:0;background:#0c151b;color:#a8e7ed;font:700 clamp(8px,1cqw,12px)/1 'Space Mono',monospace;letter-spacing:.08em;box-shadow:none}
+#overlay .dialog-argus button:hover{color:white;background:#163239}
+#overlay .dialog-argus button span{font:inherit;font-size:1.3em;margin-left:8px;color:#61edff}
+@container(max-width:430px){#overlay .dialog-box.dialog-argus{aspect-ratio:4.4}#overlay .dialog-argus .typed-copy{font-size:clamp(10px,2.6cqw,11px);line-height:1.2}#overlay .dialog-argus .dialog-speaker{font-size:clamp(10px,2.6cqw,12px)}}

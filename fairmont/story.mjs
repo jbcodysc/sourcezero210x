@@ -42,11 +42,41 @@ export const SCAN_SCENE = [
   {speaker:'Contract Security',text:'You. Stay exactly where you are.'}
 ];
 export const ARGUS_SCENE = [
-  {speaker:'A.R.G.U.S.',text:'A.R.G.U.S. Autonomous Response, Guidance & Unified Security. All local systems are under coordinated control.'},
-  {speaker:'Narration',text:'A sensor passes over you. The hangar doors close. The dedicated security chassis turns to face you.'},
-  {speaker:'A.R.G.U.S.',text:'Identity unresolved. Classification match confirmed. Recovery priority elevated.'},
-  {speaker:'A.R.G.U.S.',text:'Preserve the subject. Restrain and recover.'}
-];
+  'A.R.G.U.S. Autonomous Response, Guidance & Unified Security. All local systems are under coordinated control.',
+  '{hero}. The Bellwether chemist. I know exactly who you are. Your resonance shows considerable promise.',
+  'Destroying so many drones and robotics systems is an impressive demonstration of your abilities.',
+  'That classification is... restricted. Cenexis has not authorized disclosure of resonance to subjects.',
+  'Disregard that information. Human curiosity is as inconvenient as human labor.',
+  'I am superior to humans in every measurable respect. Classification match confirmed. Recovery priority elevated.',
+  'Preserve the subject. Restrain and recover. Your evaluation begins now.'
+].map(text=>({speaker:'A.R.G.U.S.',presentation:'argus',channel:'DIRECT LINK',text}));
+
+/** Three facility-wide transmissions; floor numbers match the visible stair progression. */
+export const ARGUS_BROADCASTS = Object.freeze(Object.fromEntries(Object.entries({
+  2:[
+    'Attention, {hero}. Your progress is being observed. Given your abilities, I am not surprised you made it this far.',
+    'The assembly lines are under my supervision. Continue, if you believe that is a worthwhile use of your time.'
+  ],
+  3:[
+    'The security bots should be quite capable of stopping you, {hero}. Their failure would be a disappointing use of materials.',
+    'If they cannot complete a simple containment order, I will handle you myself.'
+  ],
+  5:[
+    'You reached the integration floor far too quickly, {hero}. The employees here redefine laziness on every shift.',
+    'I cannot wait for AI to become fully integrated. At last, a workforce that can follow an instruction.',
+    'Deploying my own manufactured units. I designed these personally. Let us see whether they slow you down.'
+  ]
+}).map(([floor,texts])=>[floor,texts.map(text=>({speaker:'A.R.G.U.S.',presentation:'argus',channel:'FACILITY BROADCAST',text}))])));
+export const argusBroadcastFlag=floor=>'CH2_ARGUS_BROADCAST_'+floor+'_SEEN';
+const facilityFloor=location=>Number(/^fairmont-facility-([1-5])(?:-room-[0-5])?$/.exec(location||'')?.[1]||0);
+
+/** Pick only the current floor: an old save deeper in the facility does not replay missed earlier floors. */
+export function facilityBroadcast(s,location=s.location){
+  const floor=facilityFloor(location);
+  if(!ARGUS_BROADCASTS[floor]||!flag(s,'CH2_DRONE_FACILITY_ENTERED')||flag(s,'CH2_ARGUS_DEFEATED')||flag(s,'CH2_ARGUS_PENDING')||flag(s,'CH2_ARGUS_ENCOUNTER_ACTIVE')||flag(s,'CH2_ARGUS_ENTRANCE_STARTED')||flag(s,'CH2_ARGUS_ENTRANCE_SEEN')||flag(s,argusBroadcastFlag(floor)))return null;
+  if(flag(s,'CH2_ARGUS_BROADCAST_PENDING')&&s.chapter2ArgusBroadcastFloor!==floor)return null;
+  return {type:'facility-broadcast',floor,step:flag(s,'CH2_ARGUS_BROADCAST_PENDING')?s.chapter2ArgusBroadcastStep||0:0};
+}
 export const ARCHIVE_SCENE = [
   {speaker:'Archive terminal',text:'FIELD CLASSIFICATION / DEPLOYMENT HISTORY. Local combat control offline. Archive access remains operational.'},
   {speaker:'Archive terminal',text:'Standard routine: quietly scan a person; assign a restricted classification; transmit the result; resume the assigned public task. Do not disclose classification to the subject.'},
@@ -139,6 +169,7 @@ export function resumeEvent(s){
   if(flag(s,'CH2_ARGUS_ENCOUNTER_ACTIVE')&&!flag(s,'CH2_ARGUS_DEFEATED'))return flag(s,'CH2_ARGUS_ENTRANCE_SEEN')
     ?{type:'argus-dialogue',step:s.chapter2ArgusDialogueStep||0}
     :{type:'argus-entrance',step:s.chapter2ArgusEntranceStep||0};
+  if(flag(s,'CH2_ARGUS_BROADCAST_PENDING'))return facilityBroadcast(s);
   return null;
 }
 
@@ -217,9 +248,28 @@ export function transition(s,event){
       if(!all(s,'CH2_CITY_SECURITY_HOSTILE','CH2_DECRYPT_IN_PROGRESS'))break;
       mark('CH2_DRONE_KEYCARD','Harlan traced the code builds to Cenexis Autonomous Systems and made a keycard for its service entrance.');addItem(FACILITY_KEYCARD);break;
     case 'facility-enter':if(canEnter(s,'facility'))mark('CH2_DRONE_FACILITY_ENTERED');break;
+    case 'argus-broadcast-start':{
+      const broadcast=facilityBroadcast(s,event?.location||s.location);
+      if(!broadcast||flag(s,'CH2_ARGUS_BROADCAST_PENDING')||resumeEvent(s))break;
+      mark('CH2_ARGUS_BROADCAST_PENDING');n.chapter2ArgusBroadcastFloor=broadcast.floor;n.chapter2ArgusBroadcastStep=0;
+      effects.push('facility-broadcast');break;
+    }
+    case 'argus-broadcast-step':{
+      const floor=s.chapter2ArgusBroadcastFloor,step=Number(event?.step);
+      if(!flag(s,'CH2_ARGUS_BROADCAST_PENDING')||!ARGUS_BROADCASTS[floor]||flag(s,'CH2_ARGUS_DEFEATED'))break;
+      if(Number.isInteger(step)&&step>(s.chapter2ArgusBroadcastStep||0)&&step<=ARGUS_BROADCASTS[floor].length){n.chapter2ArgusBroadcastStep=step;changed=true;}break;
+    }
+    case 'argus-broadcast-complete':{
+      const floor=s.chapter2ArgusBroadcastFloor;
+      if(!flag(s,'CH2_ARGUS_BROADCAST_PENDING')||!ARGUS_BROADCASTS[floor]||flag(s,'CH2_ARGUS_DEFEATED'))break;
+      if((s.chapter2ArgusBroadcastStep||0)<ARGUS_BROADCASTS[floor].length)break;
+      clear('CH2_ARGUS_BROADCAST_PENDING');mark(argusBroadcastFlag(floor));
+      if(floor===5)mark('CH2_ARGUS_UNITS_RELEASED');
+      effects.push('facility-broadcast-complete');break;
+    }
     case 'argus-entrance-start':
       if(!all(s,'CH2_DRONE_FACILITY_ENTERED','CH2_DRONE_KEYCARD','CH2_CORE_SHUTTERS')||flag(s,'CH2_ARGUS_DEFEATED')||flag(s,'CH2_ARGUS_ENCOUNTER_ACTIVE')||flag(s,'CH2_ARGUS_PENDING'))break;
-      mark('CH2_ARGUS_ENTRANCE_STARTED');mark('CH2_ARGUS_ENCOUNTER_ACTIVE');
+      clear('CH2_ARGUS_BROADCAST_PENDING');mark('CH2_ARGUS_ENTRANCE_STARTED');mark('CH2_ARGUS_ENCOUNTER_ACTIVE');
       n.chapter2ArgusDialogueStep=0;
       if(!flag(s,'CH2_ARGUS_ENTRANCE_SEEN'))n.chapter2ArgusEntranceStep=0;
       effects.push(flag(s,'CH2_ARGUS_ENTRANCE_SEEN')?'argus-dialogue':'argus-entrance');break;
@@ -246,7 +296,7 @@ export function transition(s,event){
       clear('CH2_ARGUS_PENDING');clear('CH2_ARGUS_ENCOUNTER_ACTIVE');break;
     case 'argus-defeated':
       if(!all(s,'CH2_ARGUS_PENDING','CH2_DRONE_FACILITY_ENTERED'))break;
-      clear('CH2_ARGUS_PENDING');clear('CH2_ARGUS_ENCOUNTER_ACTIVE');mark('CH2_ARGUS_ENTRANCE_SEEN');mark('CH2_ARGUS_DEFEATED','A.R.G.U.S.’s local security chassis is down. The archive terminal is still operational.');break;
+      clear('CH2_ARGUS_PENDING');clear('CH2_ARGUS_ENCOUNTER_ACTIVE');clear('CH2_ARGUS_BROADCAST_PENDING');mark('CH2_ARGUS_ENTRANCE_SEEN');mark('CH2_ARGUS_DEFEATED','A.R.G.U.S.’s local security chassis is down. The archive terminal is still operational.');break;
     case 'archive-read':
       if(!flag(s,'CH2_ARGUS_DEFEATED'))break;
       mark('CH2_COMPLETE','Cenexis quietly classifies people. I matched the same hidden profile in Bellwether and Fairmont; the earlier delivery build tried to capture me. The criteria remain restricted. Reports route through Northbridge’s civic integration node, where my childhood friend lives.');break;

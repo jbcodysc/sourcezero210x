@@ -236,7 +236,8 @@ test('ARGUS gates archive reveal; interrupted fight resumes and defeated boss do
   assert.equal(transition(s,'archive-read').changed,false);assert.equal(conversation('archive',s).event,null);
   assert.equal(transition(s,'argus-defeated').changed,false);
   const intro=conversation('argus',s);
-  assert.ok(intro.lines.some(l=>l.text==='Identity unresolved. Classification match confirmed. Recovery priority elevated.'));
+  assert.ok(intro.lines.some(l=>l.text.includes('Morgan. The Bellwether chemist. I know exactly who you are.')));
+  assert.ok(intro.lines.some(l=>l.text.includes('Classification match confirmed. Recovery priority elevated.')));
   assert.equal(finishConversation(s,intro).changed,false,'dialogue cannot bypass the physical entrance');
   s=run(['argus-entrance-start','argus-entrance-complete'],s);
   s=finishConversation(s,intro).state;assert.deepEqual(resumeEvent(reload(s)),{type:'argus-battle',step:0});

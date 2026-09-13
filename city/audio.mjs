@@ -70,7 +70,20 @@ export class CityAudio {
  powerDown(){const c=this.context;if(!this.enabled||!this.visible||c?.state!=='running')return;for(let i=0;i<3;i++){const node=c.createOscillator(),gain=c.createGain(),start=c.currentTime+i*.55;node.type='triangle';node.frequency.setValueAtTime(460,start);node.frequency.exponentialRampToValueAtTime(180,start+.4);gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(.07,start+.03);gain.gain.exponentialRampToValueAtTime(.0001,start+.45);node.connect(gain);gain.connect(c.destination);const playing={key:'powerdown',node,gain};this.playingEffects.add(playing);node.onended=()=>{node.disconnect();gain.disconnect();this.playingEffects.delete(playing);};node.start(start);node.stop(start+.46);}}
  letter(character,voice=0){
   const c=this.context;if(!this.enabled||!this.visible||c?.state!=='running'||!/\S/.test(character)||c.currentTime-this.lastLetter<.04)return;
+  if(voice==='argus'){this.lastLetter=c.currentTime;this.argusLetter(character);return;}
   this.lastLetter=c.currentTime;const osc=c.createOscillator(),gain=c.createGain();osc.type='triangle';osc.frequency.value=voice===4?410:640+(character.codePointAt(0)%7)*32+voice*70;gain.gain.setValueAtTime(.024,c.currentTime);gain.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.035);osc.connect(gain);gain.connect(c.destination);osc.onended=()=>{osc.disconnect();gain.disconnect();};osc.start();osc.stop(c.currentTime+.04);
+ }
+ argusLetter(character){
+  const c=this.context,t=c.currentTime,code=character.codePointAt(0),pitch=[554,659,740,831,988][code%5];
+  // Short stepped carrier plus a quiet high overtone: an electronic intercom,
+  // distinct from ordinary speech blips, with soft edges to avoid clicks.
+  for(const [type,frequency,level]of [['square',pitch,.010],['sine',pitch*2,.006]]){
+   const node=c.createOscillator(),gain=c.createGain(),playing={key:'argus-letter',node,gain};node.type=type;
+   node.frequency.setValueAtTime(frequency,t);node.frequency.setValueAtTime(frequency*(code%2?1.125:.875),t+.018);
+   gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(level,t+.004);gain.gain.exponentialRampToValueAtTime(.0001,t+.047);
+   node.connect(gain);gain.connect(c.destination);this.playingEffects.add(playing);
+   node.onended=()=>{node.disconnect();gain.disconnect();this.playingEffects.delete(playing);};node.start(t);node.stop(t+.05);
+  }
  }
  stop(){for(const track of this.tracks)track.stop();this.stopEffects();}
 }

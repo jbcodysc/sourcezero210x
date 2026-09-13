@@ -10,6 +10,7 @@ import {normalizedMovement,direction} from '../lab/world-rules.mjs';
 import {walk} from '../city/city-world.mjs';
 import {encounterBounds,sweptTouchingBounds,postBattleImmune} from '../city/encounter-contact.mjs';
 import {ArgusEntrance} from './argus-entrance.mjs';
+import {createArgusUnitActor,drawArgusUnitActor} from './argus-unit-sprites.mjs';
 import {explorationMusicMode} from '../city/music-routing.mjs';
 import {SANDWICH_HEAL,SANDWICH_PRICE,GEAR,restore,buy} from '../city/progress.mjs';
 const $=s=>document.querySelector(s),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -43,10 +44,10 @@ const roomFlavor={
 };
 export function createFairmontScene(api){
  const {Base,getProgress,state,save,remember,control,resetControls,screenMode,sceneUI,advanceText,finishText,chooseKeyboardButton,VIEW,sound,actor,drawActor:drawBaseActor,prepareArt,prepareWaterArt}=api;
- const drawActor=(a,delta)=>a.fairmontCitizen?drawCitizenActor(a,delta):drawBaseActor(a,delta);
+ const drawActor=(a,delta)=>a.argusUnit?drawArgusUnitActor(a,delta):a.fairmontCitizen?drawCitizenActor(a,delta):drawBaseActor(a,delta);
  return class FairmontScene extends Base {
   constructor(){super('Fairmont');}
-  init(data){super.init(data);const p=getProgress();this.location=canonicalLocation(data?.location||'fairmont');this.entry=migrateCompactCityLayout(p,this.location,data?.position||(p.location===this.location?p.position:ARRIVAL));this.map=mapFor(this.location);this.hotel=hotelMapFor(this.location);this.floor=null;this.obstacles=[];this.scanGraphic=null;this.visuals=[];this.cinematicStep=0;}
+  init(data){super.init(data);const p=getProgress();this.location=canonicalLocation(data?.location||'fairmont');this.entry=migrateCompactCityLayout(p,this.location,data?.position||(p.location===this.location?p.position:ARRIVAL));this.map=mapFor(this.location);this.hotel=hotelMapFor(this.location);this.floor=null;this.obstacles=[];this.scanGraphic=null;this.visuals=[];this.cinematicStep=0;this.facilityBroadcast=null;this.facilityBroadcastOffset=0;}
   preload(){super.preload();preloadFairmontArt(this);loadCitizenSheets(this);}
   create(){
    const p=getProgress();state.scene=this;prepareArt(this);prepareWaterArt(this);prepareFairmontArt(this);prepareCitizenSheets(this);resetControls();screenMode('game');$('#loading').hidden=true;
@@ -54,7 +55,8 @@ export function createFairmontScene(api){
    sceneUI(this.map?this.map.title.toUpperCase():this.hotel?this.hotel.title.toUpperCase():this.location==='fairmont'?'FAIRMONT JUNCTION · '+(this.night?'NIGHT':'DAY'):this.building?.name||'FAIRMONT JUNCTION');
    const chapter=$('.chapter');if(chapter)chapter.innerHTML='<span>02</span><div>FAIRMONT JUNCTION<small>'+(this.night?'The city between shifts':'An ordinary industrial afternoon')+'</small></div>';
    $('#scene-status span').textContent=this.map||this.hotel?'INTERIOR':this.night?'NIGHT':'DAYLIGHT';$('#stage').setAttribute('aria-label','Explore Fairmont Junction');document.title='SOURCE ZERO · Fairmont Junction';
-   const pending=story.resumeEvent(p);if(pending?.type?.startsWith('argus-')){this.arrival=true;this.locked=true;}
+   const pending=story.resumeEvent(p),broadcast=(!pending||pending.type==='facility-broadcast')&&story.facilityBroadcast(p,this.location);
+   if(pending?.type?.startsWith('argus-')||broadcast){this.arrival=true;this.locked=true;}
    sound.setMode(pending?.type?.startsWith('argus-')?'argus-entrance':explorationMusicMode(this));sound.fountain(Infinity);
    if(this.map)this.createComplex();else if(this.location==='fairmont')this.createJunction();else if(this.hotel)this.createHotel();else this.createInterior();
    const point=nearestWalkable(this.location,this.entry,this.npcs,(x,y)=>this.canStand(x,y,this.npcs));this.player=actor(this,point.x,point.y,0,110,true);this.beginRecovery();
@@ -78,7 +80,7 @@ export function createFairmontScene(api){
    const visual=existing[id]?createFairmontCitizen(this,x,y,existing[id],104):sheets[id]?createCitizenActor(this,x,y,sheets[id],104):createFairmontCitizen(this,x,y,row?'olderwoman':'worker',104);
    const n={...visual,id,name,row,zone,flavor:text,wait:700+Math.random()*2400,target:null,stuck:0};this.npcs.push(n);return n;
   }
-  roam(npc,...args){super.roam(npc,...args);if(npc.fairmontCitizen)drawCitizenActor(npc,0);}
+  roam(npc,...args){super.roam(npc,...args);if(npc.argusUnit)drawArgusUnitActor(npc,0);else if(npc.fairmontCitizen)drawCitizenActor(npc,0);}
   removeCitizen(id){const n=this.npcs.find(n=>n.id===id);if(!n)return;n.sprite.destroy();n.shadow?.destroy();this.npcs=this.npcs.filter(n=>n.id!==id);}
   createJunction(){
    this.occlusionObjects||=[];
@@ -228,8 +230,11 @@ export function createFairmontScene(api){
   canStand(x,y,blockers=[]){return worldWalkable(this.location,x,y,blockers)&&!this.obstacles.some(r=>x>=r.x-20&&x<=r.x+r.w+20&&y>=r.y-15&&y<=r.y+r.h+15);}
   worldSlots(){return this.slots||[];}
   addPatrol(slot){
-   const kinds=enemiesFor(this.map);if(!kinds.includes(slot.kind))slot.kind=kinds[Math.floor(Math.random()*kinds.length)];
+   const kinds=enemiesFor(this.map,getProgress());if(!kinds.includes(slot.kind))slot.kind=kinds[Math.floor(Math.random()*kinds.length)];
    const x=slot.enemy?.x||slot.x,y=slot.enemy?.y||slot.y,type=FAIRMONT_ENEMIES[slot.kind];
+   if(slot.kind==='argusSentinel'){
+    this.enemies.set(slot.id,{...createArgusUnitActor(this,x,y),id:slot.id,kind:slot.kind,wait:300,target:null,stuck:0});return;
+   }
    if(type.mapTexture){
     const sprite=this.add.sprite(x,y,type.mapTexture,'portrait').setOrigin(.5,1).setDepth(y);
     sprite.setScale((slot.kind==='assemblyArm'?135:slot.kind==='heavyDrone'?125:110)/sprite.width);
@@ -264,7 +269,7 @@ export function createFairmontScene(api){
     if(near.requiresFlag&&!p.flags[near.requiresFlag]){this.say(near.requiresFlag==='CH2_ARGUS_DEFEATED'?'A.R.G.U.S. has locked the exit controls. The service elevator beside the integration chamber will be available once its security control is defeated.':'The door is locked by a local safety interlock. Find this department’s control terminal.');return;}
     if(near.target)this.travel(near.target,near.position||mapFor(near.target)?.arrival||hotelMapFor(near.target)?.arrival||ARRIVAL);return;
    }
-   if(near.kind==='puzzle'){if(!p.flags[near.flag]){p.flags[near.flag]=true;p.notes.push(near.text);save();}this.say(near.text+'\nA.R.G.U.S.: “Work-cell routing updated. Unscheduled access noted.”');return;}
+   if(near.kind==='puzzle'){if(!p.flags[near.flag]){p.flags[near.flag]=true;p.notes.push(near.text);save();}const lines=[{speaker:'Control terminal',text:near.text}];if(!p.flags.CH2_ARGUS_DEFEATED)lines.push({speaker:'A.R.G.U.S.',presentation:'argus',channel:'FACILITY BROADCAST',text:'Work-cell routing updated. Unscheduled access noted.'});this.showDialogue(story.dialogueLines(lines,p),this.player);return;}
    if(near.kind==='supply'){if(p.flags[near.id]){this.say('The locker is empty.');return;}p.flags[near.id]=true;if(near.amount&&near.id.endsWith('-funds'))p.credits+=near.amount;else p.snacks++;save();this.say(near.id.endsWith('-funds')?'Recovered '+near.amount+' credits from a maintenance cash tin.':'One sealed pocket sandwich. Still within its date, somehow.');return;}
    if(near.kind==='rest'){restore(p);remember(this);this.say('Employee first aid restores your HP. Your progress is saved.');return;}
    if(near.kind==='log'){
@@ -274,7 +279,7 @@ export function createFairmontScene(api){
       ['Shift board: all demo returns must be charged before opening. Someone has circled “ALL” three times.'],
       ['Staff notice: premium-service escalators are not a substitute for walking the daily stock audit.']
     ][[1,5,7].indexOf(near.index)]:story.FACILITY_LOGS[near.index===5?'breakroom':department];
-    this.showDialogue((entries||[]).flat().map(text=>({speaker:m.isMarket?'Staff terminal':'Employee terminal',side:'npc',text})),this.player);return;
+    this.showDialogue((entries||[]).flat().map(text=>text.startsWith('A.R.G.U.S.: ')?{speaker:'A.R.G.U.S.',presentation:'argus',channel:'RECORDED SYSTEM LOG',side:'npc',text:text.slice(12)}:{speaker:m.isMarket?'Staff terminal':'Employee terminal',side:'npc',text}),this.player);return;
    }
    if(near.kind==='breaker'){if(p.flags.CH2_WRM_CLEARED){this.say('The primary lines are cut. Emergency systems remain on their own circuit.');return;}if(!p.flags.CH2_KAREN_DEFEATED){const plan=story.conversation('market-manager',p);this.showDialogue(plan.lines,this.player,()=>{const result=this.applyEvent('karen-start');if(result.effects.includes('karen-battle'))this.beginBattle('karen');});}else{this.say('You cut the primary control lines. Displays go dark across three floors. Emergency lamps blink awake.',this.player,()=>{const result=this.applyEvent('cut-lines');if(result.changed){sound.powerDown();this.travel(m.id,{x:m.boss.x-140,y:m.boss.y});}});}return;}
    if(near.kind==='argus'){if(p.flags.CH2_ARGUS_DEFEATED){const plan=story.conversation('archive',p);this.showDialogue(plan.lines,this.player,()=>{this.applyEvent('archive-read');if(getProgress().flags.CH2_COMPLETE)this.showChapterEnd();});}else if(!p.flags.CH2_CORE_SHUTTERS)this.say('Integration is sealed. Network control can release these shutters.');else this.runArgusEncounter();return;}
@@ -291,7 +296,7 @@ export function createFairmontScene(api){
    const pending=story.resumeEvent(getProgress());if(pending?.type==='bellwether')this.runBellwether();else if(story.timeOfDay(getProgress())!==(wasNight?'night':'day'))this.travel(HOTEL.bedroom,hotelMapFor(HOTEL.bedroom).arrival);else this.say(wasNight?'You rest for a while. Outside, it is still night.':'A quiet rest. HP restored.',this.player,()=>save());
   }
   resumeStory(){
-   const pending=story.resumeEvent(getProgress());if(!pending)return;
+   const pending=story.resumeEvent(getProgress());if(!pending||pending.type==='facility-broadcast'){this.runFacilityBroadcast();return;}
    if(pending.type==='bellwether'){if(this.location!==HOTEL.bedroom)this.travel(HOTEL.bedroom,hotelMapFor(HOTEL.bedroom).arrival);else this.runBellwether();}
    else if(['scan','security-battle'].includes(pending.type)){
     if(this.location!=='fairmont'){this.travel('fairmont',PARK_DETAILS.scanCheckpoint);return;}
@@ -300,8 +305,27 @@ export function createFairmontScene(api){
    else if(pending.type==='karen-battle'){const room=MARKET_FLOORS[2]+'-room-5';if(this.location!==room)this.travel(room,mapFor(room).arrival);else this.beginBattle('karen');}
    else if(pending.type.startsWith('argus-')){const room=FACILITY_ZONES[4]+'-room-5';if(this.location!==room)this.travel(room,mapFor(room).arrival);else if(pending.type==='argus-battle')this.beginBattle('argus');else this.runArgusEncounter();}
   }
+  runFacilityBroadcast(){
+   if(this.facilityBroadcast||this.dialog||this.cutscene||this.transitioning)return;
+   const p=getProgress(),pending=story.resumeEvent(p);
+   if(pending&&pending.type!=='facility-broadcast')return;
+   const broadcast=story.facilityBroadcast(p,this.location);if(!broadcast)return;
+   remember(this);
+   if(!p.flags.CH2_ARGUS_BROADCAST_PENDING)this.applyEvent({type:'argus-broadcast-start',location:this.location});
+   if(!getProgress().flags.CH2_ARGUS_BROADCAST_PENDING)return;
+   const lines=story.dialogueLines(story.ARGUS_BROADCASTS[broadcast.floor],getProgress());
+   const step=Math.max(0,Math.min(lines.length,Number(getProgress().chapter2ArgusBroadcastStep)||0));
+   this.facilityBroadcast=broadcast.floor;this.facilityBroadcastOffset=step;
+   this.arrival=false;this.locked=true;this.player.walking=false;resetControls();this.input.keyboard.resetKeys();
+   const done=()=>{
+    this.applyEvent('argus-broadcast-complete');this.facilityBroadcast=null;
+    this.locked=!!this.dialog||!!this.cutscene||this.transitioning;resetControls();this.input.keyboard.resetKeys();
+   };
+   if(step>=lines.length){done();return;}
+   this.showDialogue(lines.slice(step),this.player,done);
+  }
   runArgusEncounter(){
-   const p=getProgress();if(this.argusEntrance||this.argusDialogue||this.transitioning||p.flags.CH2_ARGUS_DEFEATED)return;
+   const p=getProgress();if(this.argusEntrance||this.argusDialogue||this.facilityBroadcast||this.transitioning||p.flags.CH2_ARGUS_DEFEATED)return;
    if(!p.flags.CH2_ARGUS_ENCOUNTER_ACTIVE)this.applyEvent('argus-entrance-start');
    const pending=story.resumeEvent(getProgress());if(!pending?.type?.startsWith('argus-'))return;
    if(pending.type==='argus-battle'){this.beginBattle('argus');return;}
@@ -332,6 +356,7 @@ export function createFairmontScene(api){
   }
   advanceDialogue(){
    if(this.argusDialogue&&this.dialog)this.applyEvent({type:'argus-dialogue-step',step:this.argusDialogueOffset+this.dialog.index+1});
+   if(this.facilityBroadcast&&this.dialog)this.applyEvent({type:'argus-broadcast-step',step:this.facilityBroadcastOffset+this.dialog.index+1});
    super.advanceDialogue();
   }
   renderNarration(){super.renderNarration();const next=$('#overlay [data-action="narration-next"]');if(next)next.hidden=true;if(this.stationAgent&&this.cutscene){const step=(this.cutscene.storyOffset||0)+this.cutscene.index;if(step>=7&&!this.stationAgent.leaving){this.stationAgent.leaving=true;this.tweens.add({targets:[this.stationAgent.sprite,this.stationAgent.shadow],x:250,y:930,alpha:0,duration:1500});}}}

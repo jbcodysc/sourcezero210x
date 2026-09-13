@@ -2,6 +2,7 @@
 // World geometry belongs to the map; these helpers only draw individual objects.
 import {buildingType,buildingGeometry,rearServiceEntrance} from './building-geometry.mjs';
 import {INTERIOR_ART,preloadInteriorArt,prepareInteriorArt,drawInteriorSprite} from './interior-art.mjs';
+import {loadArgusUnitSprites,prepareArgusUnitSprites} from './argus-unit-sprites.mjs';
 export const FAIRMONT_BUILDING_FRAMES = {
  hotel:[16,48,364,491],radio:[400,122,338,416],market:[744,44,442,492],cafe:[1190,125,328,414],
  apartment:[15,570,315,377],warehouse:[350,590,365,357],facility:[737,542,451,405],terminal:[1199,633,325,311]
@@ -33,6 +34,7 @@ const ALIASES = {crate:'crates',robot:'droneDock',drone:'droneDock',shelves:'she
 
 export function preloadFairmontArt(scene){
  preloadInteriorArt(scene);
+ loadArgusUnitSprites(scene);
  for(const [key,file] of Object.entries(SOURCES)) if(!scene.textures.exists(key)) scene.load.image(key,new URL('./assets/'+file,import.meta.url).href);
 }
 
@@ -99,6 +101,7 @@ function prepareGroundTiles(scene){
 
 export function prepareFairmontArt(scene){
  prepareInteriorArt(scene);
+ prepareArgusUnitSprites(scene);
  for(const [name,rect]of Object.entries(FAIRMONT_BUILDING_FRAMES)){
   keyedTexture(scene,'fairmont-buildings-raw','fairmont-building-'+name,rect);
   daylightTexture(scene,'fairmont-building-'+name,'fairmont-building-'+name+'-day');

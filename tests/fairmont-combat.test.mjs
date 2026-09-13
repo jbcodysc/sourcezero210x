@@ -106,7 +106,7 @@ test('Chapter 1 enemy balance remains unchanged while adding the Fairmont roster
 
 test('Chapter 2 gets tougher without buffing the two scripted drones or adding encounters',()=>{
   const previous={retailCleaner:[250,52,79],retailSecurity:[290,57,88],retailService:[265,54,83],karen:[780,62,104],junctionGuard:[180,43,72],scanDrone:[240,54,84],facilitySecurity:[340,70,108],testDrone:[330,69,106],heavyDrone:[420,77,119],assemblyArm:[445,80,124],argus:[1300,82,135]};
-  assert.deepEqual(Object.keys(FAIRMONT_ENEMIES).sort(),[...Object.keys(previous),'scriptedScanDrone'].sort());
+  assert.deepEqual(Object.keys(FAIRMONT_ENEMIES).sort(),[...Object.keys(previous),'scriptedScanDrone','argusSentinel'].sort());
   for(const [id,old]of Object.entries(previous))for(const [index,key]of ['hp','attack','charge'].entries()){
     assert.ok(FAIRMONT_ENEMIES[id][key]>old[index],`${id} ${key} should increase`);
   }
