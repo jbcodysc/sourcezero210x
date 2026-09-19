@@ -17,7 +17,7 @@ const sequence=[
   'arrive','module-reminder','radio-bargain','hotel-sleep','bellwether-finished','wrm-enter',
   'karen-start','karen-defeated','cut-lines','hotel-sleep','decrypt-start','guard-heard',
   'protester-finished','scan-finished','security-defeated','keycard','facility-enter',
-  'argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated','archive-read'
+  'argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated','argus-reflected','archive-read'
 ];
 // The existing network console sets its puzzle flag outside the story reducer.
 function storyStep(s,event){if(event==='argus-entrance-start')s={...s,flags:{...s.flags,CH2_CORE_SHUTTERS:true}};return transition(s,event);}
@@ -28,6 +28,7 @@ function reload(s){return JSON.parse(JSON.stringify(s));}
 test('Derek mentions coffee casually without assigning a delivery errand',()=>{
   const arrived=until('arrive'),first=conversation('derek',arrived);
   assert.match(first.lines.map(l=>l.text).join(' '),/wish I had a caramel macchiato/);
+  assert.match(first.lines.map(l=>l.text).join(' '),/magic.*videos.*Probably just AI renderings/);
   assert.doesNotMatch(first.lines.map(l=>l.text).join(' '),/could you bring|bring me|get me/i);
   const heard=transition(arrived,first.event).state;
   assert.doesNotMatch(conversation('derek',heard).lines.map(l=>l.text).join(' '),/then back here|bring me|get me/i);
@@ -85,7 +86,7 @@ test('arrival requires the completed water route, retained storage module, and r
 
 test('main beats cannot be skipped from the arrival state',()=>{
   const s=until('arrive');
-  for(const event of ['radio-bargain','bellwether-finished','wrm-enter','karen-start','karen-defeated','cut-lines','decrypt-start','guard-heard','protester-finished','scan-finished','security-defeated','keycard','facility-enter','argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated','archive-read']){
+  for(const event of ['radio-bargain','bellwether-finished','wrm-enter','karen-start','karen-defeated','cut-lines','decrypt-start','guard-heard','protester-finished','scan-finished','security-defeated','keycard','facility-enter','argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated','argus-reflected','archive-read']){
     assert.equal(transition(s,event).changed,false,event);
   }
 });
@@ -242,7 +243,7 @@ test('ARGUS gates archive reveal; interrupted fight resumes and defeated boss do
   s=run(['argus-entrance-start','argus-entrance-complete'],s);
   s=finishConversation(s,intro).state;assert.deepEqual(resumeEvent(reload(s)),{type:'argus-battle',step:0});
   s=transition(s,'argus-defeated').state;assert.equal(s.flags.CH2_COMPLETE,undefined);
-  assert.equal(transition(s,'argus-start').changed,false);assert.equal(resumeEvent(s),null);
+  assert.equal(transition(s,'argus-start').changed,false);assert.equal(resumeEvent(reload(s)).type,'reflection');s=transition(s,'argus-reflected').state;assert.equal(resumeEvent(s),null);
   assert.equal(conversation('argus',s).event,null);assert.equal(conversation('archive',s).event,'archive-read');
   s=finishConversation(s,conversation('archive',s)).state;
   assert.equal(s.flags.CH2_COMPLETE,true);assert.equal(transition(s,'archive-read').changed,false);
@@ -291,7 +292,7 @@ test('A.R.G.U.S. defeat recovery allows clinic rest and retry dialogue without r
   assert.deepEqual(retry.effects,['argus-dialogue']);assert.deepEqual(resumeEvent(s),{type:'argus-dialogue',step:0});
   assert.equal(transition(s,'argus-entrance-complete').changed,false);
   s=transition(s,'argus-start').state;s=transition(s,'argus-defeated').state;
-  assert.equal(resumeEvent(reload(s)),null);
+  assert.equal(resumeEvent(reload(s)).type,'reflection');s=transition(s,'argus-reflected').state;assert.equal(resumeEvent(reload(s)),null);
   for(const event of ['argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated'])assert.equal(transition(s,event).changed,false,event);
   assert.equal(conversation('archive',s).event,'archive-read');
 });
@@ -300,7 +301,7 @@ test('legacy pending A.R.G.U.S. saves resume the fight and still recover safely 
   const legacy=until('facility-enter');legacy.flags.CH2_ARGUS_PENDING=true;
   assert.deepEqual(resumeEvent(reload(legacy)),{type:'argus-battle',step:0});
   const won=transition(legacy,'argus-defeated').state;
-  assert.equal(won.flags.CH2_ARGUS_DEFEATED,true);assert.equal(resumeEvent(won),null);
+  assert.equal(won.flags.CH2_ARGUS_DEFEATED,true);assert.equal(resumeEvent(won).type,'reflection');
   assert.equal(conversation('archive',won).event,'archive-read');
   const lost=transition(legacy,'argus-aborted').state;
   assert.equal(resumeEvent(lost),null);assert.equal(lost.flags.CH2_ARGUS_DEFEATED,undefined);assert.equal(lost.flags.CH2_ARGUS_ENTRANCE_SEEN,true);
@@ -311,7 +312,7 @@ test('legacy pending A.R.G.U.S. saves resume the fight and still recover safely 
 test('player-facing text withholds forbidden explanations; scans disclose no classification result',()=>{
   const visible=[BELLWETHER_SCENE,ARCHIVE_SCENE,SCAN_SCENE,FACILITY_LOGS,FLAVOR];
   for(let i=1;i<=sequence.length;i++){
-    const s=run(sequence.slice(0,i));for(const npc of NPCS)visible.push(conversation(npc.id,s).lines);
+    const s=run(sequence.slice(0,i));for(const npc of NPCS)visible.push(conversation(npc.id,s).lines.filter(line=>!(npc.id==='derek'&&line.text.includes('Probably just AI renderings'))));
     visible.push(s.notes,objective(s));
   }
   assert.doesNotMatch(JSON.stringify(visible),/\bmagic\b|biological resonance|resonance-capable|cyborg|magically/i);

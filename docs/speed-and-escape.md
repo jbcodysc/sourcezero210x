@@ -13,12 +13,12 @@ enemies. Against one opponent:
 
 | Player : enemy speed | Player acts first | Escape chance |
 | --- | --- | --- |
-| 5 : 5 | 50% | 40% |
-| 6 : 5 | 67.46% | 45.81% |
-| 10 : 5 | 94.12% | 62.08% |
-| 30 : 10 | 98.78% | 75% |
+| 5 : 5 | 50% | 30% |
+| 6 : 5 | 67.46% | 35.81% |
+| 10 : 5 | 94.12% | 52.08% |
+| 30 : 10 | 98.78% | 65% |
 
-Escape uses `40% + 35% × log(speed ratio) / log(3)`, clamped to 5–75%,
+Escape uses `30% + 35% × log(speed ratio) / log(3)`, clamped to 5–75%,
 against the fastest surviving enemy. Run takes its place in normal initiative:
 fast enemies can act before the attempt. Failure consumes the player's turn.
 Success awards no XP/credits, sets no victory flags, and leaves the overworld
@@ -50,7 +50,7 @@ and now +1 speed each level.
 
 A.R.G.U.S. Sentinels now have 614 HP, 111 attack and 172 charged attack
 (rounded 10% increases). They never call help, have a 5% silly-action chance,
-and retain the separate 5% attack miss chance. Boss A.R.G.U.S. is unchanged.
+and retain the separate 5% attack miss chance. Boss A.R.G.U.S. also uses a 5% silly-action chance. The Run command hides odds; the current command has a persistent highlighted cursor.
 
 Validation includes seeded probability sampling, multi-enemy queue behavior,
 charged attacks, guard duration, successful/failed escapes, mandatory encounters,

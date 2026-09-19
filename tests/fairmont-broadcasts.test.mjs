@@ -109,7 +109,7 @@ test('reload after the last acknowledged page finishes safely without an empty d
  assert.equal(h.progress.flags.CH2_ARGUS_UNITS_RELEASED,true);
 });
 
-test('physical boss entrance and pending combat take priority; defeated boss and clinic recovery are silent',()=>{
+test('physical boss entrance and pending combat take priority; victory reflects on resonance while clinic recovery is silent',()=>{
  let p=apply(ready(5),'argus-broadcast-start');p=apply(p,'argus-entrance-start');
  assert.equal(p.flags.CH2_ARGUS_BROADCAST_PENDING,undefined);assert.equal(resumeEvent(p).type,'argus-entrance');
  const h=harness(p);h.scene.resumeStory();assert.equal(h.events.includes('dialogue'),false);assert.equal(h.events.includes('travel'),true);
@@ -120,7 +120,9 @@ test('physical boss entrance and pending combat take priority; defeated boss and
  lost.location='fairmont-facility-5';assert.equal(facilityBroadcast(lost),null,'a rematch does not run belated PA announcements');
  finishFairmontBattle(p,{id:'argus'});
  for(const floor of [2,3,5])assert.equal(facilityBroadcast(p,'fairmont-facility-'+floor),null);
- assert.equal(resumeEvent(p),null);
+ assert.equal(resumeEvent(p).type,'reflection');
+ const aftermath=harness(p);aftermath.scene.resumeStory();assert.ok(aftermath.events.includes('dialogue'));
+ const done=transition(p,'argus-reflected').state;assert.equal(resumeEvent(done),null);assert.equal(transition(done,'argus-reflected').changed,false);
 });
 
 test('A.R.G.U.S. recognizes the hero, slips classified resonance information, and uses the unique panel for every page',()=>{

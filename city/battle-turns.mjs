@@ -4,7 +4,7 @@ import {livingEnemies,playerAction,enemyAction,validatePlayerAction} from './enc
 // 10:5 = 94.12%. Exponential races give a coherent order for whole groups,
 // without an inconsistent random comparator. Every participant acts once.
 export const initiativeChance=(speed,opponent)=>1/(1+(opponent/speed)**4);
-export const escapeChance=(speed,opponent)=>Math.max(.05,Math.min(.75,.4+.35*Math.log(speed/opponent)/Math.log(3)));
+export const escapeChance=(speed,opponent)=>Math.max(.05,Math.min(.75,.3+.35*Math.log(speed/opponent)/Math.log(3)));
 export const canRun=b=>!b.enemies.some(e=>e.stats.boss||e.id==='courier'||e.id==='scriptedScanDrone');
 export const battleEscapeChance=b=>canRun(b)?escapeChance(b.speed,Math.max(...livingEnemies(b).map(e=>e.stats.speed))):0;
 

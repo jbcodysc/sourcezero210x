@@ -18,17 +18,17 @@ import {explorationMusicMode} from '../city/music-routing.mjs';
 import {SANDWICH_HEAL,SANDWICH_PRICE,CONSUMABLES,GEAR,restore,buy} from '../city/progress.mjs';
 const $=s=>document.querySelector(s),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const streetNPCs=[
- ['commuter','Nadia',860,3930,1,'I come here every day. The bus still asks if I am enjoying my visit.'],
+ ['commuter','Nadia',860,3930,1,'I come here every day. The bus still asks if I am enjoying my visit. Hard to enjoy a city that has been paved into one enormous manufacturing plant.'],
  ['courier-local','Parcel Unit 14',3120,3830,3,'DELIVERY COMPLETE. YOUR AFTERNOON HAS BEEN LEFT IN A SAFE PLACE.'],
- ['technician','Sam',3410,1540,0,'That sensor paused on me for three seconds. Then it went back to counting pallets. Calibration, probably.'],
- ['shopper','Fran',1710,1990,1,'Need someone who actually repairs electronics? Try the little Radio Hut. Most places just sell you the next one.'],
- ['reader','Imani',3080,1030,1,'The old paper bookshop has a charging station. For the owner. It is a chair.'],
- ['worker','Omar',3410,2550,0,'The drone complex is running a new validation shift. Trucks in, packaged drones out. It never really closes.'],
- ['neighbor','Mrs. Cole',920,3460,1,'The park was twice this size. They call the other half progress. I used to call it a nice walk.'],
+ ['technician','Sam',3410,1540,0,'That sensor paused on me for three seconds. Then it went back to counting pallets. Calibration, probably. I miss the old gardens, but the plant pays my rent. That is just the price of progress, I suppose.'],
+ ['shopper','Fran',1710,1990,1,'Need someone who actually repairs electronics? Try the little Radio Hut. Most places just sell you the next one. There used to be a garden behind his shop. Now it is a loading bay.'],
+ ['reader','Imani',3080,1030,1,'The old paper bookshop has a charging station. For the owner. It is a chair. I remember when insects still existed around here. Now the only things buzzing past my window have serial numbers.'],
+ ['worker','Omar',3410,2550,0,'The drone complex is running a new validation shift. Trucks in, packaged drones out. It never really closes. More jobs, more pavement. That is just the price of progress. I only wish progress would let us sleep.'],
+ ['neighbor','Mrs. Cole',920,3460,1,'The park was twice this size. They call the other half progress. I used to call it a nice walk. They paved the creek too. Who looks at a creek and thinks it needs a freight lane?'],
  ['service-local','Municipal Service Unit',630,2230,3,'PUBLIC WALKWAY CLEAR. PLEASE ENJOY THE REMAINING PUBLIC WALKWAY.'],
  ['derek','Derek',1400,2660,0,null],
  ['protester','Jo Bell',1700,2890,1,null],
- ['camper','Ada',1920,2540,1,'We are staying here. Quietly, legally, and with a truly irresponsible quantity of lentils.'],
+ ['camper','Ada',1920,2540,1,'We are staying here. Quietly, legally, and with a truly irresponsible quantity of lentils. The rest of this city is concrete. We are not surrendering the last patch of shade.'],
  ['organizer','Mel',1430,3060,0,'Half the park is already cleared for their data center. The machines stay parked as long as we stay here.'],
  ['signmaker','Kit',2030,2900,0,'My sign says SAVE OUR PARK. The back says THIS IS ALSO MY LUNCH TABLE.'],
  ['bystander','Louis',1150,3150,0,'Nobody is throwing anything. We are saving the park, not auditioning for the evening news.']
@@ -59,7 +59,7 @@ export function createFairmontScene(api){
    const chapter=$('.chapter');if(chapter)chapter.innerHTML='<span>02</span><div>FAIRMONT JUNCTION<small>'+(this.night?'The city between shifts':'An ordinary industrial afternoon')+'</small></div>';
    $('#scene-status span').textContent=this.map||this.hotel?'INTERIOR':this.night?'NIGHT':'DAYLIGHT';$('#stage').setAttribute('aria-label','Explore Fairmont Junction');document.title='SOURCE ZERO · Fairmont Junction';
    const pending=story.resumeEvent(p),broadcast=(!pending||pending.type==='facility-broadcast')&&story.facilityBroadcast(p,this.location);
-   if(pending?.type?.startsWith('argus-')||broadcast){this.arrival=true;this.locked=true;}
+   if(pending?.type?.startsWith('argus-')||pending?.type==='reflection'||broadcast){this.arrival=true;this.locked=true;}
    sound.setMode(pending?.type?.startsWith('argus-')?'argus-entrance':explorationMusicMode(this));sound.fountain(Infinity);
    if(this.map)this.createComplex();else if(this.location==='fairmont')this.createJunction();else if(this.hotel)this.createHotel();else this.createInterior();
    const point=nearestWalkable(this.location,this.entry,this.npcs,(x,y)=>this.canStand(x,y,this.npcs));this.player=actor(this,point.x,point.y,0,110,true);if(this.entry?.facing)this.player.dir=this.entry.facing;this.beginRecovery();
@@ -305,7 +305,8 @@ export function createFairmontScene(api){
   }
   resumeStory(){
    const pending=story.resumeEvent(getProgress());if(!pending||pending.type==='facility-broadcast'){this.runFacilityBroadcast();return;}
-   if(pending.type==='bellwether'){if(this.location!==HOTEL.bedroom)this.travel(HOTEL.bedroom,hotelMapFor(HOTEL.bedroom).arrival);else this.runBellwether();}
+   if(pending.type==='reflection'){this.arrival=false;this.showDialogue(story.dialogueLines(story.ARGUS_AFTERMATH,getProgress()),this.player,()=>this.applyEvent('argus-reflected'));}
+   else if(pending.type==='bellwether'){if(this.location!==HOTEL.bedroom)this.travel(HOTEL.bedroom,hotelMapFor(HOTEL.bedroom).arrival);else this.runBellwether();}
    else if(['scan','security-battle'].includes(pending.type)){
     if(this.location!=='fairmont'){this.travel('fairmont',PARK_DETAILS.scanCheckpoint);return;}
     if(pending.type==='scan')this.runScan();else this.beginBattle('junctionGuard',null,['junctionGuard','scriptedScanDrone','scriptedScanDrone']);

@@ -19,9 +19,9 @@ export const ENEMIES={
  ,...FAIRMONT_ENEMIES};
 const helperFor={waterScrubber:'pipeRat',pipeBot:'waterScrubber',pipeRat:'pipeRat',waterGuard:'waterGuard',drainBot:'pipeBot',courier:'cleaner',volunteer:'volunteer',contractor:'volunteer',cleaner:'cleaner',loader:'cleaner',bastion:'loader'};
 const antics={
- animal:['sneezes at a droplet and looks offended.','tries to intimidate its own tail.','carefully rearranges a damp cracker.','forgets the argument and washes one ear.'],
- human:['tries to crack their knuckles. Nothing happens.','checks a pocket for a dramatic entrance cue.','argues with an imaginary supervisor.','attempts an intimidating wink. Both eyes close.'],
- robot:['prints a receipt for absolutely nothing.','installs a confidence update. Restart postponed.','announces a coffee break. It cannot drink coffee.','spins its wrist like a tiny ceiling fan.']
+ animal:['sneezes at a droplet and looks offended.','tries to intimidate its own tail.','carefully rearranges a damp cracker.','forgets the argument and washes one ear.','stares at a crumb as if it holds all the answers.','picks a fight with its own shadow.'],
+ human:['tries to crack their knuckles. Nothing happens.','checks a pocket for a dramatic entrance cue.','argues with an imaginary supervisor.','attempts an intimidating wink. Both eyes close.','practices a threatening pose and loses their balance.','forgets their prepared insult halfway through.'],
+ robot:['plays its own startup jingle. Nobody applauds.','installs a confidence update. Restart postponed.','announces a coffee break. It cannot drink coffee.','runs a victory simulation. The results are inconclusive.','asks you to rate this encounter before it is over.','spends a moment arguing with its own diagnostic report.']
 };
 function makeFoe(id,uid){const stats=ENEMIES[id]||ENEMIES.volunteer;return {uid,id,stats,hp:stats.hp,maxHp:stats.hp,charged:false,turn:1};}
 export const livingEnemies=b=>b.enemies.filter(e=>e.hp>0);
@@ -67,7 +67,7 @@ export function enemyAction(b,rng=Math.random,{queued=false}={}){
  let foe;while(b.enemyQueue.length&&!foe){const uid=b.enemyQueue.shift();foe=b.enemies.find(e=>e.uid===uid&&e.hp>0);}
  if(!foe){if(!queued){b.phase='command';b.guarding=false;}return {ok:false};}
  const result={ok:true,damage:0,enemyUid:foe.uid,type:'attack'},roll=rng(),name=foe.stats.name,sillyRate=foe.stats.sillyRate??SILLY_RATE;
- if(!foe.charged&&roll<sillyRate){result.type='silly';b.message=name+' '+antics[foe.stats.kind][(foe.turn-1)%4];}
+ if(!foe.charged&&roll<sillyRate){result.type='silly';b.message=name+' '+antics[foe.stats.kind][(foe.turn-1)%antics[foe.stats.kind].length];}
  else if(!foe.charged&&!foe.stats.noHelp&&roll<sillyRate+HELP_RATE){
   result.type='help';
   if(livingEnemies(b).length<MAX_ACTIVE_ENEMIES){const helper=makeFoe(foe.stats.helper||helperFor[foe.id]||'volunteer',b.nextUid++);b.enemies.push(helper);result.joined=helper.uid;b.message=name+' calls for help. '+helper.stats.name+' joins the fight!';}

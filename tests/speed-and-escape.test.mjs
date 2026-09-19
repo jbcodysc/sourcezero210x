@@ -14,8 +14,8 @@ function finishRound(b,rng=()=>.99){const results=[];for(let i=0;b.phase==='reso
 test('speed gives strong initiative advantages but a gentler capped escape curve',()=>{
  close(initiativeChance(5,5),.5);assert.ok(initiativeChance(6,5)>.66&&initiativeChance(6,5)<.68);
  assert.ok(initiativeChance(10,5)>.94&&initiativeChance(10,5)<.96);
- close(escapeChance(10,10),.4);close(escapeChance(30,10),.75);close(escapeChance(999,10),.75);
- assert.ok(escapeChance(20,10)>.61&&escapeChance(20,10)<.63);
+ close(escapeChance(10,10),.3);close(escapeChance(30,10),.65);close(escapeChance(999,10),.75);
+ assert.ok(escapeChance(20,10)>.51&&escapeChance(20,10)<.53);
  assert.ok(escapeChance(5,10)<.2);assert.equal(escapeChance(1,100),.05);
 });
 
