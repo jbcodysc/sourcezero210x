@@ -1,0 +1,106 @@
+[
+  {
+    "file": "battle.wav",
+    "frames": 3475860,
+    "seconds": 72.41375,
+    "peak_dbfs": -2.6997424827819225,
+    "clipped_samples": 0,
+    "seam_delta": 1.1920928955078125e-07,
+    "repeated_boundary_peak": 0.26884615421295166,
+    "ogg_frames": 3475860,
+    "ogg_peak": 0.7410901188850403
+  },
+  {
+    "file": "fairmont-city.wav",
+    "frames": 8960000,
+    "seconds": 186.66666666666666,
+    "peak_dbfs": -2.00552770558617,
+    "clipped_samples": 0,
+    "seam_delta": 1.1920928955078125e-07,
+    "repeated_boundary_peak": 0.47329628467559814,
+    "ogg_frames": 8960000,
+    "ogg_peak": 0.7895463705062866
+  },
+  {
+    "file": "fairmont-interior.wav",
+    "frames": 7305363,
+    "seconds": 152.1950625,
+    "peak_dbfs": -2.061968159443376,
+    "clipped_samples": 0,
+    "seam_delta": 1.1920928955078125e-07,
+    "repeated_boundary_peak": 0.34475231170654297,
+    "ogg_frames": 7305363,
+    "ogg_peak": 0.782027542591095
+  },
+  {
+    "file": "fanfare.wav",
+    "frames": 134400,
+    "seconds": 2.8,
+    "peak_dbfs": -3.7853020296686064,
+    "clipped_samples": 0,
+    "ogg_frames": 134400,
+    "ogg_peak": 0.6598638296127319
+  },
+  {
+    "file": "menu.wav",
+    "frames": 2633143,
+    "seconds": 54.857145833333334,
+    "peak_dbfs": -6.271271322029018,
+    "clipped_samples": 0,
+    "seam_delta": 0.0,
+    "repeated_boundary_peak": 0.4508596658706665,
+    "ogg_frames": 2633143,
+    "ogg_peak": 0.4969625771045685
+  },
+  {
+    "file": "town.wav",
+    "frames": 4189090,
+    "seconds": 87.27270833333333,
+    "peak_dbfs": -3.0833212290799117,
+    "clipped_samples": 0,
+    "seam_delta": 1.1920928955078125e-07,
+    "repeated_boundary_peak": 0.6383651494979858,
+    "ogg_frames": 4189090,
+    "ogg_peak": 0.7030194401741028
+  },
+  {
+    "file": "victory.wav",
+    "frames": 120000,
+    "seconds": 2.5,
+    "peak_dbfs": -2.005526401216297,
+    "clipped_samples": 0,
+    "ogg_frames": 120000,
+    "ogg_peak": 0.800822913646698
+  },
+  {
+    "file": "waterworks.wav",
+    "frames": 4320000,
+    "seconds": 90.0,
+    "peak_dbfs": -3.0275634139729126,
+    "clipped_samples": 0,
+    "seam_delta": 1.1920928955078125e-07,
+    "repeated_boundary_peak": 0.5832232236862183,
+    "ogg_frames": 4320000,
+    "ogg_peak": 0.711675226688385
+  },
+  {
+    "file": "chapter3_city_everything_almost_full.wav",
+    "frames": 7680000,
+    "seconds": 160.0,
+    "peak_dbfs": -2.00552770558617,
+    "clipped_samples": 0,
+    "seam_delta": 0.0008836984634399414,
+    "repeated_boundary_peak": 0.49279963970184326,
+    "ogg_frames": 7680000,
+    "ogg_peak": 0.8075394630432129
+  },
+  {
+    "file": "chapter3_city_everything_almost_bass.wav",
+    "frames": 7680000,
+    "seconds": 160.0,
+    "peak_dbfs": -8.461467564378545,
+    "clipped_samples": 0,
+    "seam_delta": 0.0005204677581787109,
+    "repeated_boundary_peak": 0.22129666805267334
+  }
+]

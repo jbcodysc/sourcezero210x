@@ -1,5 +1,24 @@
 # Chapter 2 facility and A.R.G.U.S. audio
 
+## Standing direction for future soundtrack work (September 18, 2026)
+
+“Retro JRPG” describes composition, not hardware restrictions. Use modern,
+high-quality rendered instruments, samples, or well-developed sound design;
+do not impose SNES channel, sample-rate, bit-depth, or synthesis limitations
+unless authentic retro synthesis is explicitly requested.
+
+Bass must be a prominent, meaningful part of every new or revised track unless
+explicitly requested otherwise: an identifiable sound, intentional musical part,
+clear note definition, substantial mix presence, and appropriate rhythmic or
+melodic interest. This does not require distortion, exaggerated sub-bass, or solos.
+These standing rules do not authorize remixing previously approved music.
+
+The Chapter 3 “Everything, Almost” 30-second approval demo is a separate local
+production under `outputs/chapter3-city-demo` in the parent workspace. It is not
+integrated with the game or a replacement for any current track.
+
+## Existing Chapter 2 implementation
+
 These are finished original rendered compositions, not placeholder tracks. All
 instruments are synthesized from authored note/rhythm events and seeded noise;
 there are no imported recordings, soundfonts, vocals, or borrowed musical phrases.

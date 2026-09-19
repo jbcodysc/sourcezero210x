@@ -211,9 +211,9 @@ test('save-position recovery supplies a walkable point for a stale blocked posit
 // drawing objects discard paint operations while retaining runtime NPCs,
 // collision rectangles and interaction targets for geometry checks.
 function drawingObject() {
-  const object = {width:320,height:400,displayWidth:320,displayHeight:400};
-  for (const key of ['setDepth','setPosition','fillStyle','fillRect','fillEllipse','fillRoundedRect','lineStyle','lineBetween','strokeRect','setOrigin','setTint','add','setStrokeStyle','setAngle','setAlpha']) object[key] = () => object;
-  object.setScale = scale => {object.displayWidth=object.width*scale;object.displayHeight=object.height*scale;return object;};
+  const object = {width:320,height:400,displayWidth:320,displayHeight:400,texture:{key:'test-facade'}};
+  for (const key of ['setDepth','setPosition','fillStyle','fillRect','fillEllipse','fillRoundedRect','lineStyle','lineBetween','strokeRect','strokeEllipse','setOrigin','setTint','add','setStrokeStyle','setAngle','setAlpha']) object[key] = () => object;
+  object.setScale = scale => {object.scaleX=scale;object.displayWidth=object.width*scale;object.displayHeight=object.height*scale;return object;};
   return object;
 }
 function geometryScene(location) {
@@ -224,6 +224,7 @@ function geometryScene(location) {
   scene.building = BUILDINGS.find(b=>b.id===scene.roomId);
   scene.add = Object.fromEntries(['graphics','rectangle','container','image','tileSprite','ellipse','circle','text'].map(key=>[key,()=>drawingObject()]));
   scene.tweens={add:()=>{}};
+  scene.textures={exists:()=>true};
   scene.label=()=>drawingObject();scene.prop=()=>drawingObject();
   scene.addCitizen=(id,name,x,y,row=0,text=null)=>{const npc={id,name,x,y,row,flavor:text};scene.npcs.push(npc);return npc;};
   if(location==='fairmont')scene.createJunction();else if(scene.map)scene.createComplex();else if(scene.hotel)scene.createHotel();else scene.createInterior();

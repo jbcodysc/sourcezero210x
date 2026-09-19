@@ -1,0 +1,92 @@
+[
+  {
+    "id": "town",
+    "location": "Bellwether streets and interiors",
+    "original": "city/assets/town.wav",
+    "sha256": "488476d52901dabd65464b90b123a8c4bc776fb808f8d6c7bd46bde899e5c524",
+    "loop": true,
+    "status": "remaster",
+    "new": "city/assets/music-remastered/town.ogg"
+  },
+  {
+    "id": "battle",
+    "location": "Ordinary encounters, Chapter 1 bosses and K.A.R.E.N.",
+    "original": "lab/assets/robot-in-the-reagent-room.wav",
+    "sha256": "2b07020d3d66b23c537f0678e4b8ce0c8f470b8c594f6f12f1be1d985862de68",
+    "loop": true,
+    "status": "remaster",
+    "new": "city/assets/music-remastered/battle.ogg"
+  },
+  {
+    "id": "menu",
+    "location": "Save slots, chapter selection and naming",
+    "original": "city/assets/name-select.wav",
+    "sha256": "b6b823cf88bdf9d96a9f2953c0d69438becb13f8ad2faca30a4d5559d5f254b5",
+    "loop": true,
+    "status": "remaster",
+    "new": "city/assets/music-remastered/menu.ogg"
+  },
+  {
+    "id": "fairmont-interior",
+    "location": "Fairmont public interiors and homes",
+    "original": "city/assets/fairmont-junction-industrial-town.wav",
+    "sha256": "9231f2c89f3190a671a60465bf483f2bbd69933f4e61e3787986c1f4ab08b0d7",
+    "loop": true,
+    "status": "remaster",
+    "new": "city/assets/music-remastered/fairmont-interior.ogg"
+  },
+  {
+    "id": "fairmont-city",
+    "location": "Fairmont streets, transit and robotics store",
+    "original": "city/assets/fairmont-city-machine.wav",
+    "sha256": "68fb0711ab13f0059ddec96f00c6eedf15895e8fa9de121f89dd71cc87c8a9be",
+    "loop": true,
+    "status": "remaster",
+    "new": "city/assets/music-remastered/fairmont-city.ogg"
+  },
+  {
+    "id": "waterworks",
+    "location": "Waterworks and Whole Robotics dungeon",
+    "original": "city/assets/below-the-intake-waterworks.mp3",
+    "sha256": "81309a150792ba244cc27765256b7a5547fca6c3d7877443077d0cf38d3f52d9",
+    "loop": true,
+    "status": "remaster",
+    "new": "city/assets/music-remastered/waterworks.ogg"
+  },
+  {
+    "id": "fanfare",
+    "location": "Battle transition",
+    "original": "city/assets/battle-start-guitar.wav",
+    "sha256": "864942b410b0668965f7b6e0592187483b6c456c72c8f8ea17088844088eb168",
+    "loop": false,
+    "status": "remaster",
+    "new": "city/assets/music-remastered/fanfare.ogg"
+  },
+  {
+    "id": "victory",
+    "location": "Battle won cue",
+    "original": "city/assets/battle-victory.wav",
+    "sha256": "c5b84f6db4b38bb9ce92f6b7f7c94cf0e7476faa5eba5116f1916b3229dbedb1",
+    "loop": false,
+    "status": "remaster",
+    "new": "city/assets/music-remastered/victory.ogg"
+  },
+  {
+    "id": "factory",
+    "location": "Final drone facility",
+    "original": "city/assets/ch2_drone_factory_theme.wav",
+    "sha256": "4b71015591772beb2ab0ba773cc8ea4ca33817686e63e1a987207c7c83c2414e",
+    "loop": true,
+    "status": "LOCKED \u2014 NOT MODIFIED",
+    "new": null
+  },
+  {
+    "id": "argus",
+    "location": "A.R.G.U.S. battle",
+    "original": "city/assets/ch2_argus_battle_theme.wav",
+    "sha256": "bb7ea654f33cb8a433596f32a02beff77b485c115fc19280ae59b107c8296c23",
+    "loop": true,
+    "status": "LOCKED \u2014 NOT MODIFIED",
+    "new": null
+  }
+]

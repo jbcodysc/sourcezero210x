@@ -30,6 +30,13 @@ The game has three save slots stored in the browser. Saves from a different webs
 
 ## Publishing
 
+The September 2026 [soundtrack remaster](docs/soundtrack-remaster.md) replaces
+eight eligible runtime tracks/cues with high-quality OGG assets while preserving
+their original files and musical identities. The drone facility and A.R.G.U.S.
+battle masters are locked and unchanged. The full Chapter 3 theme remains a
+separate approval render and is not integrated. [Fairmont's visual revision](docs/fairmont-depth-karen.md)
+adds shallow street/building depth and K.A.R.E.N.'s new portrait.
+
 In repository Settings → Pages, select **GitHub Actions** as the source. The included workflow publishes the game after each push to main. No Node installation or build step is required for this exported game.
 
 For development, run `node --test tests/*.test.mjs`. The deployment workflow runs these checks before publishing. They cover saved story gates, optional quest expiry, combat rules, sprite bounds, and reachable map interactions.

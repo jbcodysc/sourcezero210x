@@ -1,5 +1,9 @@
 # Fairmont Junction supplied interior music
 
+Runtime update: the [September remaster](soundtrack-remaster.md) now plays
+`city/assets/music-remastered/fairmont-interior.ogg`. The original MIDI and WAV
+remain unchanged; the implementation below documents that preserved original.
+
 The supplied `Fairmont_Junction_Industrial_Town_Theme.mid` is preserved unchanged
 in `city/assets/`. The original implementation README is preserved alongside this
 document as `Fairmont_Junction_Industrial_Town_Theme_README.txt`.

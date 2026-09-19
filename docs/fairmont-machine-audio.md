@@ -52,3 +52,8 @@ recovery. Other music volumes and battle effects are unchanged.
 `tests/fairmont-town-audio.test.mjs` checks every Fairmont location, independent
 resume positions, source isolation, fountain startup/mute/re-entry, original
 score duration and PCM seam, and preservation of the supplied MIDI render.
+# Current runtime revision
+
+The [September soundtrack remaster](soundtrack-remaster.md) now plays
+`city/assets/music-remastered/fairmont-city.ogg`. The original WAV and score
+remain unchanged. The notes below describe that preserved source composition.

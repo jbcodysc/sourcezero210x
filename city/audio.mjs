@@ -1,21 +1,21 @@
 import {BattleMusic} from '../lab/battle-music.mjs';
 import {fountainVolume} from './city-world.mjs';
-const EFFECT_FILES={vibrosword:'vibrosword-electric',bash:'bash-heavy',fanfare:'battle-start-guitar',victory:'battle-victory','security-alarm':'argus-security-alarm','argus-boosters':'argus-blue-boosters','argus-stabilize':'argus-stabilize'};
+const EFFECT_FILES={vibrosword:'vibrosword-electric',bash:'bash-heavy',fanfare:'music-remastered/fanfare.ogg',victory:'music-remastered/victory.ogg','security-alarm':'argus-security-alarm','argus-boosters':'argus-blue-boosters','argus-stabilize':'argus-stabilize'};
 const ENTRANCE_EFFECTS=new Set(['security-alarm','argus-boosters','argus-stabilize']);
 const LOOP_EFFECTS=new Set(['security-alarm','argus-boosters']);
 export class CityAudio {
  constructor(onChange=()=>{}){
   this.enabled=true;this.context=null;this.effects={};this.effectLoads={};this.lastLetter=0;this.onChange=onChange;this.mode='title';this.visible=true;this.playingEffects=new Set();this.requestedLoops=new Set();
   const options={contextFactory:()=>this.getContext(),onError:()=>this.onChange(),onReady:()=>{if(this.menu?.gain)this.menu.gain.gain.value=.5;this.onChange();}};
-  this.town=new BattleMusic(new URL('./assets/town.wav',import.meta.url).href,{...options,resumeOnStart:true});
-  this.fairmontTown=new BattleMusic(new URL('./assets/fairmont-junction-industrial-town.wav',import.meta.url).href,{...options,resumeOnStart:true});
-  this.fairmontCity=new BattleMusic(new URL('./assets/fairmont-city-machine.wav',import.meta.url).href,{...options,resumeOnStart:true});
-  this.battle=new BattleMusic(new URL('../lab/assets/robot-in-the-reagent-room.wav',import.meta.url).href,options);
+  this.town=new BattleMusic(new URL('./assets/music-remastered/town.ogg',import.meta.url).href,{...options,resumeOnStart:true});
+  this.fairmontTown=new BattleMusic(new URL('./assets/music-remastered/fairmont-interior.ogg',import.meta.url).href,{...options,resumeOnStart:true});
+  this.fairmontCity=new BattleMusic(new URL('./assets/music-remastered/fairmont-city.ogg',import.meta.url).href,{...options,resumeOnStart:true});
+  this.battle=new BattleMusic(new URL('./assets/music-remastered/battle.ogg',import.meta.url).href,options);
   // Distance-controlled ambience must begin silently. Starting at the music
   // player's normal gain caused a full-volume transient before the first ramp.
   this.water=new BattleMusic(new URL('./assets/fountain.wav',import.meta.url).href,{...options,initialVolume:0});
-  this.menu=new BattleMusic(new URL('./assets/name-select.wav',import.meta.url).href,options);
-  this.dungeon=new BattleMusic(new URL('./assets/below-the-intake-waterworks.mp3',import.meta.url).href,{...options,resumeOnStart:true});
+  this.menu=new BattleMusic(new URL('./assets/music-remastered/menu.ogg',import.meta.url).href,options);
+  this.dungeon=new BattleMusic(new URL('./assets/music-remastered/waterworks.ogg',import.meta.url).href,{...options,resumeOnStart:true});
   this.factory=new BattleMusic(new URL('./assets/ch2_drone_factory_theme.wav',import.meta.url).href,{...options,resumeOnStart:true});
   this.argus=new BattleMusic(new URL('./assets/ch2_argus_battle_theme.wav',import.meta.url).href,options);
   this.waterDistance=Infinity;
@@ -27,7 +27,7 @@ export class CityAudio {
   const loads=this.tracks.map(track=>track.unlock({retry:retry&&track.failed}));
   const files=EFFECT_FILES;
   if(retry){this.effectFailed=false;for(const key of Object.keys(files))if(!this.effects[key])delete this.effectLoads[key];}
-  for(const [key,file]of Object.entries(files))if(!this.effectLoads[key])this.effectLoads[key]=globalThis.fetch(new URL('./assets/'+file+'.wav',import.meta.url)).then(r=>{if(!r.ok)throw new Error('Effect unavailable');return r.arrayBuffer();}).then(b=>this.getContext().decodeAudioData(b)).then(b=>{this.effects[key]=b;if(this.requestedLoops.has(key))this.effect(key);this.onChange();}).catch(()=>{this.effectFailed=true;this.onChange();});
+  for(const [key,file]of Object.entries(files))if(!this.effectLoads[key])this.effectLoads[key]=globalThis.fetch(new URL('./assets/'+file+(file.endsWith('.ogg')?'':'.wav'),import.meta.url)).then(r=>{if(!r.ok)throw new Error('Effect unavailable');return r.arrayBuffer();}).then(b=>this.getContext().decodeAudioData(b)).then(b=>{this.effects[key]=b;if(this.requestedLoops.has(key))this.effect(key);this.onChange();}).catch(()=>{this.effectFailed=true;this.onChange();});
   return Promise.all([...loads,...Object.values(this.effectLoads)]).then(results=>{for(const key of this.requestedLoops)this.effect(key);return results;});
  }
  setMode(mode){

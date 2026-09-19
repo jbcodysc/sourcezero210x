@@ -1,6 +1,7 @@
 // Original Fairmont assets. The raw atlases use a magenta matte, removed once at load.
 // World geometry belongs to the map; these helpers only draw individual objects.
 import {buildingType,buildingGeometry,rearServiceEntrance} from './building-geometry.mjs';
+import {buildingRelief} from './street-depth.mjs';
 import {INTERIOR_ART,preloadInteriorArt,prepareInteriorArt,drawInteriorSprite} from './interior-art.mjs';
 import {loadArgusUnitSprites,prepareArgusUnitSprites} from './argus-unit-sprites.mjs';
 export const FAIRMONT_BUILDING_FRAMES = {
@@ -33,6 +34,7 @@ const PROP_WIDTH = {tree:250,tent:208,crates:134,bench:166,console:108,shelf:218
 const ALIASES = {crate:'crates',robot:'droneDock',drone:'droneDock',shelves:'shelf',terminal:'console',computer:'console',arm:'assemblyArm',lamp:'lamppost',counter:'desk',locker:'server',couch:'sofa',barrier:'fence'};
 
 export function preloadFairmontArt(scene){
+ if(!scene.textures.exists('fairmont-karen-new'))scene.load.image('fairmont-karen-new',new URL('./assets/karen-remastered.png',import.meta.url).href);
  preloadInteriorArt(scene);
  loadArgusUnitSprites(scene);
  for(const [key,file] of Object.entries(SOURCES)) if(!scene.textures.exists(key)) scene.load.image(key,new URL('./assets/'+file,import.meta.url).href);
@@ -111,7 +113,7 @@ export function prepareFairmontArt(scene){
  for(const [name,rect]of Object.entries(FAIRMONT_PARK_FRAMES))keyedTexture(scene,'fairmont-park-details-raw','fairmont-prop-'+name,rect);
  for(const [name,views]of Object.entries(FAIRMONT_ENEMY_FRAMES))for(const [view,rect]of Object.entries(views))keyedTexture(scene,'fairmont-enemies-v2-raw',`fairmont-enemy-${name}-${view}`,rect,1024,1536);
  FAIRMONT_CITIZEN_ROLES.forEach((name,i)=>keyedTexture(scene,'fairmont-citizens-raw','fairmont-citizen-'+name,[i*362,0,362,724],2172,724));
- keyedTexture(scene,'fairmont-bosses-raw','fairmont-karen',[42,101,600,908]);
+ keyedTexture(scene,'fairmont-karen-new','fairmont-karen',[0,0,1024,1536],1024,1536);
  keyedTexture(scene,'fairmont-bosses-raw','fairmont-argus',[650,20,864,990]);
  keyedTexture(scene,'fairmont-bus-raw','fairmont-bus',[0,0,1536,1024]);
  keyedTexture(scene,'fairmont-machines-raw','fairmont-survey-drone',[15,240,520,370],1774,887);
@@ -144,7 +146,8 @@ export function drawFairmontBuilding(scene,b,night=false){
   if(name.width>panelWidth-12)name.setScale((panelWidth-12)/name.width);
   container.add([plate,name]);
  }
- container.facade=image;container.geometry=buildingGeometry(b);return container;
+ container.facade=image;container.geometry=buildingGeometry(b);
+ container.relief=buildingRelief(scene,image,b,container.geometry,night);return container;
 }
 
 /** A real service doorway mounted at the rear ground wall, beneath the facade. */

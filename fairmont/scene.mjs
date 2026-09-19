@@ -1,5 +1,6 @@
 import {activateDoor,canInteractDoor} from '../city/doors.mjs';
 import {drawElectronicDoor} from './door-art.mjs';
+import {drawStreetDepth} from './street-depth.mjs';
 import {CITY,ROADS,PARK,PARK_DETAILS,ARRIVAL,BUILDINGS,CITY_NPC_POINTS,CITY_FIXTURES,INTERIORS,MARKET_FLOORS,FACILITY_ZONES,HOTEL,mapFor,hotelMapFor,canonicalLocation,retireRoomSpawns,worldWalkable,nearestWalkable,citySpawns,spawnEvents,markDefeated,chaseWaypoint,rearServiceEntrance} from './world.mjs';
 import {buildingGeometry} from './building-geometry.mjs';
 import {migrateCompactCityLayout} from './city-density.mjs';
@@ -93,6 +94,7 @@ export function createFairmontScene(api){
    for(const b of BUILDINGS){const f=buildingGeometry(b).facade;this.add.tileSprite(f.x-20,f.y+f.h-10,f.w+40,100,'fm-paving').setOrigin(0).setDepth(-29).setTint(this.night?0x73849c:0xffffff);}
    g.fillStyle(0xddc989,.7);for(const y of ROADS.horizontal)for(let x=30;x<CITY.width;x+=125)if(!ROADS.vertical.some(v=>Math.abs(v-x)<170))g.fillRect(x,y-3,50,6);
    g.fillStyle(0xe6e3ce,.65);for(const x of ROADS.vertical)for(const y of ROADS.horizontal)for(let i=-3;i<=3;i++){g.fillRect(x+i*22,y-142,11,35);g.fillRect(x-142,y+i*22,35,11);}
+   drawStreetDepth(this,CITY,ROADS,this.night);
    this.createPark();
    // Loading aprons, conduit runs and stacked freight replace suburban lawns.
    for(const b of BUILDINGS.filter(b=>['warehouse','facility','market'].includes(b.type))){
