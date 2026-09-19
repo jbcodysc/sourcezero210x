@@ -14,5 +14,6 @@ export function combatMusicMode(scene){
  if(scene.transition)return 'transition';
  if(scene.battle.phase==='defeat')return 'defeat';
  if(scene.battle.phase==='victory')return 'victory';
+ if(scene.battle.phase==='escaped')return 'escaped';
  return scene.battle.id==='argus'?'argus-battle':'battle';
 }

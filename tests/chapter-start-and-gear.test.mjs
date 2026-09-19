@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {CHAPTERS,createChapterProgress} from '../city/chapter-start.mjs';
 import {freshProgress,GEAR,buy,buyGear,equipArmor,armorDefense,weaponBonus,playerStats,xpThreshold,validProgress,restore} from '../city/progress.mjs';
+import {carryBattleInventory} from '../city/battle-turns.mjs';
 import {SaveSlots} from '../city/save-slots.mjs';
 import {resumeEvent,timeOfDay,transition} from '../fairmont/story.mjs';
 import {createEncounter,ENEMIES} from '../city/encounters.mjs';
@@ -15,7 +16,7 @@ const storage=()=>{const values=new Map();return {getItem:key=>values.get(key)||
 test('Chapter 2 begins at the daytime bus arrival with complete Chapter 1 prerequisites, not a later event',()=>{
  const s=createChapterProgress(2,'Finley');
  assert.ok(validProgress(s));assert.equal(s.level,15);assert.equal(s.xp,xpThreshold(15));assert.equal(s.hp,s.maxHp);assert.equal(s.location,'fairmont');
- assert.equal(s.credits,2000);assert.deepEqual(playerStats(s),{health:278,attack:79,defense:33});
+ assert.equal(s.credits,2000);assert.deepEqual(playerStats(s),{health:278,attack:79,defense:33,speed:19});
  assert.deepEqual(s.inventory,['insulated-vest']);assert.equal(s.snacks,2);
  assert.equal(timeOfDay(s),'day');assert.equal(resumeEvent(s),null);assert.equal(s.flags.CH2_ARRIVED,true);
  assert.equal(s.flags.CH2_MODULE_REMINDER_SEEN,undefined);assert.equal(s.flags.CH2_RADIO_HUT_BARGAIN,undefined);
@@ -86,8 +87,8 @@ test('the actual battle return sends every Fairmont defeat to the clinic while k
   const progress=createChapterProgress(2,'Kim');progress.hp=1;progress.flags.CH2_RADIO_HUT_BARGAIN=true;
   const before=progress.inventory.slice(),state={origin:{scene:'Fairmont'},encounter:{id,region:'fairmont-facility5',checkpoint:{location:'fairmont-facility5',position:{x:100,y:100}}}};
   let destination,saved=false,aborted=false;
-  const Battle=actualSceneClass('BattleScene','if(!P)',{state,progress,restore,abortFairmontBattle(){aborted=true;},save(){saved=true;}});
-  const scene=new Battle();scene.closed=false;scene.battle={phase:'defeat',snacks:1};scene.scene={start:(name,data)=>{destination={name,...data};}};
+  const Battle=actualSceneClass('BattleScene','if(!P)',{state,progress,restore,carryBattleInventory,abortFairmontBattle(){aborted=true;},save(){saved=true;}});
+  const scene=new Battle();scene.closed=false;scene.battle={phase:'defeat',snacks:1,inventory:[...progress.inventory]};scene.scene={start:(name,data)=>{destination={name,...data};}};
   scene.handleAction('return');assert.equal(destination.name,'Fairmont');assert.equal(destination.location,'fairmont-clinic');assert.equal(progress.location,'fairmont-clinic');
   assert.equal(progress.hp,progress.maxHp);assert.equal(progress.snacks,1);assert.deepEqual(progress.inventory,before);assert.equal(progress.flags.CH2_RADIO_HUT_BARGAIN,true);
   assert.equal(saved,true);assert.equal(aborted,true);

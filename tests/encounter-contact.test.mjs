@@ -40,7 +40,7 @@ test('only a battle grants two seconds; scene changes and menus do not restart i
   assert.doesNotMatch(body,/grantPostBattleImmunity|afterBattle:true|immunity=/);
  }
  assert.match(source,/returnedFromBattle=!!data\?\.afterBattle/);
- assert.equal((source.match(/afterBattle:true/g)||[]).length,3,'victory and both defeat destinations');
+ assert.equal((source.match(/afterBattle:true/g)||[]).length,4,'victory, escape and both defeat destinations');
  const launch=source.slice(source.indexOf(' launch(s){'),source.indexOf('\n handleAction('));
  const session={encounterImmunityUntil:2100},ui={};
  const Start=vm.runInNewContext('(class {'+launch+'})',{progress:null,state:session,newSpawns:()=>[],locations:new Set(['city']),save:()=>{},$:()=>ui,resumeOpening:p=>p});

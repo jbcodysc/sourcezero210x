@@ -4,15 +4,16 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {freshProgress,award,playerStats,mark} from '../city/progress.mjs';
 import {createEncounter,playerAction,enemyAction,encounterRewards,rollHealth} from '../city/encounters.mjs';
+import {beginRound,nextTurn,carryBattleInventory,escapeProgress} from '../city/battle-turns.mjs';
 import {Typewriter} from '../lab/presentation.mjs';
 const source=readFileSync(new URL('../city/city.js',import.meta.url),'utf8');
 function setup(){
  const progress=freshProgress('Jamie'),state={origin:{scene:'Explore'},encounter:{id:'volunteer'}},events=[];
  const text=source.slice(source.indexOf('class BattleScene extends'),source.indexOf('if(!P)'));
- const Battle=vm.runInNewContext(text+';BattleScene',{SceneBase:class{},progress,state,award,playerStats,mark,encounterRewards,rollHealth,playerAction:(b,a)=>playerAction(b,a,()=>.5),enemyAction,heroName:()=>progress.name,save:()=>events.push('save'),resetControls(){},finishText(){return false;},advanceText(s,d){s.writer?.advance(d);},sound:{setMode(){},effect(){}},$:()=>({remove(){}})});
- const scene=new Battle();scene.battle=createEncounter('volunteer',progress);scene.enemySprites=new Map();scene.time={now:0,delayedCall(){}};scene.input={keyboard:{resetKeys(){}}};scene.scene={start:(...args)=>events.push(args)};scene.updateVitals=()=>{};scene.patternTime=0;
+ const Battle=vm.runInNewContext(text+';BattleScene',{SceneBase:class{},progress,state,award,playerStats,mark,encounterRewards,rollHealth,carryBattleInventory,escapeProgress,beginRound:(b,a)=>beginRound(b,a,()=>.5),nextTurn:b=>{const r=nextTurn(b,()=>.5);if(r.actor==='enemy')events.push('enemy');return r;},playerAction:(b,a)=>playerAction(b,a,()=>.5),enemyAction,heroName:()=>progress.name,save:()=>events.push('save'),resetControls(){},finishText(){return false;},advanceText(s,d){s.writer?.advance(d);},sound:{setMode(){},effect(){}},$:()=>({remove(){}})});
+ const scene=new Battle();scene.battle=createEncounter('volunteer',progress);scene.enemySprites=new Map();scene.time={now:0,delayedCall(){}};scene.input={keyboard:{resetKeys(){}}};scene.scene={start:(...args)=>events.push(args)};scene.updateVitals=()=>{};scene.patternTime=0;scene.cameras={main:{shake(){}}};
  scene.renderHUD=()=>{events.push('render');if(scene.battle.phase==='victory'&&!scene.actionPresentation)scene.reward();else scene.writer=new Typewriter(scene.battle.message,44);};
- scene.renderNotice=()=>events.push('notice');scene.resolveEnemyTurn=()=>{events.push('enemy');enemyAction(scene.battle,()=>.5);};
+ scene.renderNotice=()=>events.push('notice');
  return {scene,progress,events};
 }
 test('player action stays visible for 1.8 seconds after typing, and commands cannot skip it',()=>{
@@ -25,7 +26,9 @@ test('player action stays visible for 1.8 seconds after typing, and commands can
 test('healing confirmation blocks repeated goods, pauses damage, and releases exactly one enemy turn',()=>{
  const {scene,events}=setup();scene.battle.hp=scene.battle.targetHp=45;scene.battle.snacks=3;
  scene.handleAction('snack');assert.equal(scene.notice.recovered,65);assert.equal(scene.battle.snacks,2);
+ assert.equal(scene.battle.hp,45,'healing must not snap the counter to its target');
  for(let i=0;i<20;i++){scene.handleAction('snack');scene.update(0,100);}
+ assert.ok(Math.abs(scene.battle.hp-93)<.00001,'healing continues at 24 HP/sec behind the notice');
  assert.equal(scene.battle.snacks,2);assert.equal(events.includes('enemy'),false);
  scene.handleAction('notice-next');assert.equal(scene.notice,null);assert.equal(events.filter(e=>e==='enemy').length,1);assert.equal(scene.battle.snacks,2);
 });
@@ -34,7 +37,7 @@ test('a finishing blow remains readable before XP and level-up notices are award
  assert.equal(scene.battle.phase,'victory');assert.match(scene.battle.message,/31 damage/);assert.equal(progress.level,1);
  scene.writer.finish();for(let i=0;i<18;i++)scene.update(0,100);
  assert.equal(progress.level,2);assert.equal(scene.notice.kind,'level');assert.equal(scene.notice.name,'Jamie');
- assert.deepEqual(JSON.parse(JSON.stringify(scene.notice.after)),{health:122,attack:34,defense:2});
+ assert.deepEqual(JSON.parse(JSON.stringify(scene.notice.after)),{health:122,attack:34,defense:2,speed:6});
  const xp=progress.xp;scene.reward();assert.equal(progress.xp,xp);
  scene.handleAction('return');assert.equal(scene.closed,undefined);
  scene.handleAction('notice-next');assert.equal(scene.notice.page,1);assert.equal(scene.closed,undefined);
@@ -48,4 +51,12 @@ test('multi-level increases reflect actual stats and equipment without changing 
 test('rolling HP defeat during a reading pause still opens recovery',()=>{
  const {scene}=setup();scene.battle.hp=1;scene.battle.targetHp=0;scene.handleAction('guard');scene.update(0,100);
  assert.equal(scene.battle.phase,'defeat');assert.equal(scene.actionPresentation,null);
+});
+
+test('the actual escape return preserves used items and requests post-battle immunity without awarding XP',()=>{
+ const {scene,progress,events}=setup();const before={xp:progress.xp,credits:progress.credits,flags:JSON.stringify(progress.flags)};
+ scene.battle.phase='escaped';scene.battle.hp=63.2;scene.battle.snacks=0;scene.battle.inventory=['field-meal'];
+ scene.handleAction('return');assert.equal(progress.hp,64);assert.equal(progress.snacks,0);assert.deepEqual(progress.inventory,['field-meal']);
+ assert.equal(progress.xp,before.xp);assert.equal(progress.credits,before.credits);assert.equal(JSON.stringify(progress.flags),before.flags);
+ const returned=events.find(e=>Array.isArray(e));assert.equal(returned[0],'Explore');assert.equal(returned[1].afterBattle,true);assert.ok(events.includes('save'));
 });
