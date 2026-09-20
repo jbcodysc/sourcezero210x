@@ -1,6 +1,6 @@
 import {BattleMusic} from '../lab/battle-music.mjs';
 import {fountainVolume} from './city-world.mjs';
-const EFFECT_FILES={vibrosword:'vibrosword-electric',bash:'bash-heavy',fanfare:'music-remastered/fanfare.ogg',victory:'music-remastered/victory.ogg','security-alarm':'argus-security-alarm','argus-boosters':'argus-blue-boosters','argus-stabilize':'argus-stabilize'};
+const EFFECT_FILES={'tidal-wave':'tidal-wave-rush',vibrosword:'vibrosword-electric',bash:'bash-heavy',fanfare:'music-remastered/fanfare.ogg',victory:'music-remastered/victory.ogg','security-alarm':'argus-security-alarm','argus-boosters':'argus-blue-boosters','argus-stabilize':'argus-stabilize'};
 const ENTRANCE_EFFECTS=new Set(['security-alarm','argus-boosters','argus-stabilize']);
 const LOOP_EFFECTS=new Set(['security-alarm','argus-boosters']);
 export class CityAudio {
@@ -37,6 +37,7 @@ export class CityAudio {
   const selected=mode==='fairmont-city'||mode==='fairmont-industrial'?this.fairmontCity:mode==='fairmont-interior'?this.fairmontTown:mode==='dungeon'?this.dungeon:mode==='factory'?this.factory:mode==='argus-battle'?this.argus:mode==='battle'?this.battle:mode==='menu'?this.menu:mode==='city'||mode==='interior'?this.town:null;
   for(const track of this.tracks)if(track!==selected&&(track!==this.water||!['city','fairmont-city'].includes(mode)))track.stop();
   selected?.start();if(selected===this.menu&&this.menu.gain)this.menu.gain.gain.value=.5;
+  if(mode!=='battle')this.stopEffects('tidal-wave');
   if(mode!=='transition')this.stopEffects('fanfare');if(mode!=='victory')this.stopEffects('victory');
   if(mode!=='argus-entrance')for(const key of ENTRANCE_EFFECTS)this.stopEffects(key);
  }
@@ -45,6 +46,7 @@ export class CityAudio {
  resumeLoops(){if(this.mode==='argus-entrance'&&this.enabled&&this.visible)for(const key of this.requestedLoops)this.effect(key);}
  fountain(distance){this.waterDistance=distance;const volume=fountainVolume(distance);if(['city','fairmont-city'].includes(this.mode)&&volume>.001){this.water.start();if(this.water.gain)this.water.gain.gain.setTargetAtTime(volume,this.context.currentTime,.12);}else this.water.stop();}
  effect(key){
+  if(key==='tidal-wave'&&this.mode!=='battle')return;
   if((ENTRANCE_EFFECTS.has(key)&&this.mode!=='argus-entrance')||(key==='fanfare'&&this.mode!=='transition')||(key==='victory'&&this.mode!=='victory'))return;
   if(LOOP_EFFECTS.has(key))this.requestedLoops.add(key);
   if(!this.enabled||!this.visible)return;

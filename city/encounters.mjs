@@ -15,7 +15,7 @@ export const ENEMIES={
  pipeRat:{speed:36,name:'Pipe Rat',hp:132,attack:39,charge:54,xp:50,credits:20,portrait:'water-enemies',frame:'water-2',kind:'animal',opening:'A soaking-wet rat bares its teeth.'},
  waterGuard:{speed:11,name:'Cenexis Facility Guard',hp:198,attack:44,charge:65,xp:70,credits:45,portrait:'water-enemies',frame:'water-3',kind:'human',opening:'“Company orders. Turn around.”'},
  drainBot:{speed:8,name:'Drain Scourer',hp:175,attack:41,charge:62,xp:60,credits:35,portrait:'water-enemies',frame:'water-4',kind:'robot',opening:'BLOCKAGE IDENTIFIED. APPLYING EXCESSIVE FORCE.'},
- regulator:{speed:7,name:'DELUGE · Water Regulator',hp:650,attack:46,charge:70,xp:300,credits:180,portrait:'water-enemies',frame:'water-5',kind:'robot',boss:true,noHelp:true,opening:'CENEXIS REMOTE OVERRIDE ACTIVE. DISCHARGE LIMITS DISABLED.'}
+ regulator:{tidalWavePower:150,speed:7,name:'DELUGE · Water Regulator',hp:650,attack:46,charge:70,xp:300,credits:180,portrait:'water-enemies',frame:'water-5',kind:'robot',boss:true,noHelp:true,opening:'CENEXIS REMOTE OVERRIDE ACTIVE. DISCHARGE LIMITS DISABLED.'}
  ,...FAIRMONT_ENEMIES};
 const helperFor={waterScrubber:'pipeRat',pipeBot:'waterScrubber',pipeRat:'pipeRat',waterGuard:'waterGuard',drainBot:'pipeBot',courier:'cleaner',volunteer:'volunteer',contractor:'volunteer',cleaner:'cleaner',loader:'cleaner',bastion:'loader'};
 const antics={
@@ -66,6 +66,17 @@ export function enemyAction(b,rng=Math.random,{queued=false}={}){
  if(b.phase!=='resolving')return {ok:false};
  let foe;while(b.enemyQueue.length&&!foe){const uid=b.enemyQueue.shift();foe=b.enemies.find(e=>e.uid===uid&&e.hp>0);}
  if(!foe){if(!queued){b.phase='command';b.guarding=false;}return {ok:false};}
+ // Threshold is private combat state; no health-trigger narration. A charged
+ // attack keeps its promised next turn, with the wave waiting until afterward.
+ if(foe.stats.tidalWavePower&&!foe.charged&&!foe.tidalWaveUsed&&foe.hp<=foe.maxHp*.2){
+  foe.tidalWaveUsed=true;foe.turn++;
+  const miss=rng()<MISS_RATE;
+  let damage=Math.max(4,foe.stats.tidalWavePower-b.defense);
+  if(b.guarding)damage=Math.ceil(damage*.3);
+  const impact={type:'tidal-wave',enemyUid:foe.uid,damage:miss?0:Math.round(damage*ENEMY_DAMAGE_MULTIPLIER),miss,applied:false,queued};
+  b.pendingEnemyImpact=impact;b.phase='enemyAnimation';b.message='';
+  return {ok:true,type:'tidal-wave',enemyUid:foe.uid,damage:0,impact};
+ }
  const result={ok:true,damage:0,enemyUid:foe.uid,type:'attack'},roll=rng(),name=foe.stats.name,sillyRate=foe.stats.sillyRate??SILLY_RATE;
  if(!foe.charged&&roll<sillyRate){result.type='silly';b.message=name+' '+antics[foe.stats.kind][(foe.turn-1)%antics[foe.stats.kind].length];}
  else if(!foe.charged&&!foe.stats.noHelp&&roll<sillyRate+HELP_RATE){
@@ -81,4 +92,17 @@ export function enemyAction(b,rng=Math.random,{queued=false}={}){
  }
  foe.turn++;if(!queued&&!b.enemyQueue.length){b.turn++;b.guarding=false;b.phase='command';}
  return result;
+}
+
+// Animation callbacks commit an enemy hit exactly once, only in its live battle.
+export function applyEnemyImpact(b,impact){
+ if(b.phase!=='enemyAnimation'||b.pendingEnemyImpact!==impact||impact.applied)return false;
+ impact.applied=true;b.targetHp=Math.max(0,b.targetHp-impact.damage);
+ b.message=impact.miss?'Miss!':impact.damage+' damage.';return true;
+}
+export function finishEnemyAnimation(b,impact){
+ if(b.phase!=='enemyAnimation'||b.pendingEnemyImpact!==impact||!impact.applied)return false;
+ b.pendingEnemyImpact=null;b.phase=impact.queued?'resolving':b.enemyQueue.length?'resolving':'command';
+ if(!impact.queued&&b.phase==='command'){b.turn++;b.guarding=false;}
+ return true;
 }

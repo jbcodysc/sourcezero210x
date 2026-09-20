@@ -115,3 +115,6 @@ body[data-screen=start] #touch-controls,body[data-screen=cinematic] #touch-contr
 .level-notice:has(.level-gains) h2{font-size:clamp(24px,4cqw,38px);margin:12px 0}
 .level-gains{gap:6px;margin:12px auto 18px}.level-gains>div{padding:6px 0}
 @container(max-width:520px){.level-notice:has(.level-gains){padding:10px}.level-notice:has(.level-gains) h2{font-size:clamp(16px,4.5cqw,24px);margin:6px 0}.level-gains{font-size:13px;gap:2px;margin:6px auto 10px}.level-gains>div{padding:3px 0}.level-gains dd{gap:10px}.level-notice button{padding:6px 14px;font-size:11px}}
+
+.battle-screen-effect{position:absolute;inset:0;width:100%;height:100%;z-index:100;pointer-events:none;image-rendering:pixelated}
+.battle-effect-active .battle-log{visibility:hidden}

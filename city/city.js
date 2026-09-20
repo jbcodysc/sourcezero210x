@@ -14,6 +14,7 @@ import {freshProgress,mark,award,buy,restore,playerStats,xpThreshold,SANDWICH_HE
 import {SaveSlots} from './save-slots.mjs';
 import {CoreGameUI} from './core-ui.mjs';
 import {hasMagic,inventoryEntries} from './core-status.mjs';
+import {preloadScreenAttacks,registerScreenAttacks,TidalWaveEffect} from './screen-attacks.mjs';
 import {BattleSelection} from './battle-selection.mjs';
 import {beginRound,nextTurn,canRun,carryBattleInventory,escapeProgress} from './battle-turns.mjs';
 import {canInteractDoor} from './doors.mjs';
@@ -24,7 +25,7 @@ import {isArgusLine,argusPanelMarkup,argusTextMarkup} from './argus-dialogue.mjs
 import {fitBattleText,watchBattleText} from './battle-text-layout.mjs';
 import {normalizeName,resumeOpening,courierPresent,finishDelivery,finishIntro,finishPoliceReport,PICKUP,POLICE_NARRATION} from './opening.mjs';
 import {BattleTransition,BATTLE_START_MS} from './transition.mjs';
-import {createEncounter,rollHealth,ENEMIES,livingEnemies,targetEnemy,selectTarget,encounterRewards} from './encounters.mjs';
+import {createEncounter,applyEnemyImpact,finishEnemyAnimation,rollHealth,ENEMIES,livingEnemies,targetEnemy,selectTarget,encounterRewards} from './encounters.mjs';
 import {CityAudio} from './audio.mjs';
 import {explorationMusicMode,combatMusicMode} from './music-routing.mjs';
 import {DUNGEON,WATER_FLOORS,floorData,dungeonWalkable,newDungeonSpawns,seedFoyer,updateDungeonSpawns,chaseStep,southernWalkable,floodActive,FAIRMONT_EXIT} from './waterworks.mjs';
@@ -336,17 +337,18 @@ class ExploreScene extends SceneBase{
 const FairmontScene=createFairmontScene({Base:ExploreScene,getProgress:()=>progress,state,save,remember,control,resetControls,screenMode,sceneUI,advanceText,finishText,chooseKeyboardButton,VIEW,sound,actor,drawActor,prepareArt,prepareWaterArt});
 class BattleScene extends SceneBase{
  constructor(){super('Battle');}
+ preload(){preloadScreenAttacks(this);}
  init(data){this.transitionSource=data?.transitionSource||null;this.transition=null;this.transitionElapsed=0;}
  create(){
-  state.scene=this;this.closed=false;this.rewarded=false;this.notice=null;this.goodsOpen=false;this.commandSelection=new BattleSelection($('#overlay'));this.actionPresentation=null;this.battle=createEncounter(state.encounter.id,progress,state.encounter.ids);const b=this.battle;resetControls();$('#scene-status').hidden=true;$('#prompt').hidden=true;$('#overlay').innerHTML='';
+  state.scene=this;registerScreenAttacks(this);this.enemyEffect=null;this.closed=false;this.rewarded=false;this.notice=null;this.goodsOpen=false;this.commandSelection=new BattleSelection($('#overlay'));this.actionPresentation=null;this.battle=createEncounter(state.encounter.id,progress,state.encounter.ids);const b=this.battle;resetControls();$('#scene-status').hidden=true;$('#prompt').hidden=true;$('#overlay').innerHTML='';
   this.pattern=this.textures.exists('battle-pattern')?this.textures.get('battle-pattern'):this.textures.createCanvas('battle-pattern',384,240);drawBattleBackdrop(this.pattern.context,0);this.pattern.refresh();this.patternTime=0;
   this.add.image(0,0,'battle-pattern').setOrigin(0).setDisplaySize(VIEW.width,VIEW.height);
   this.enemySprites=new Map();this.renderEnemies();
   screenMode('cinematic');this.transition=new BattleTransition(this,this.transitionSource);this.transitionSource=null;sound.setMode('transition');sound.effect('fanfare');
   this.time.delayedCall(BATTLE_START_MS,()=>{if(this.closed)return;this.transition?.destroy();this.transition=null;screenMode('battle');this.renderHUD();sound.setMode(combatMusicMode(this));this.input.keyboard.resetKeys();});
-  this.onKey=e=>{if(e.repeat||this.transition)return;if(e.key==='Escape'&&this.goodsOpen){e.preventDefault();this.handleAction('goods-back');return;}if(this.notice){if(['z','enter',' '].includes(e.key.toLowerCase())){e.preventDefault();this.handleAction('notice-next');}return;}chooseKeyboardButton(e);if(['z','enter',' '].includes(e.key.toLowerCase())){e.preventDefault();if(finishText(this))return;(document.activeElement?.closest('#overlay button:not(:disabled)')||$('#overlay .command-selected:not(:disabled)')||$('#overlay button:not(:disabled)'))?.click();}};
+  this.onKey=e=>{if(e.repeat||this.transition||this.battle.phase==='enemyAnimation')return;if(e.key==='Escape'&&this.goodsOpen){e.preventDefault();this.handleAction('goods-back');return;}if(this.notice){if(['z','enter',' '].includes(e.key.toLowerCase())){e.preventDefault();this.handleAction('notice-next');}return;}chooseKeyboardButton(e);if(['z','enter',' '].includes(e.key.toLowerCase())){e.preventDefault();if(finishText(this))return;(document.activeElement?.closest('#overlay button:not(:disabled)')||$('#overlay .command-selected:not(:disabled)')||$('#overlay button:not(:disabled)'))?.click();}};
   this.stopWatchingBattleText=watchBattleText($('#overlay'),$('#stage'));
-  this.input.keyboard.addCapture([13,32,37,38,39,40,90]);this.input.keyboard.on('keydown',this.onKey);this.events.once('shutdown',()=>{this.closed=true;this.commandSelection?.destroy();this.stopWatchingBattleText?.();this.writer=null;this.transition?.destroy();this.transition=null;sound.battle.stop();sound.argus.stop();sound.stopEffects('fanfare');sound.stopEffects('victory');this.input.keyboard.off('keydown',this.onKey);resetControls();});
+  this.input.keyboard.addCapture([13,32,37,38,39,40,90]);this.input.keyboard.on('keydown',this.onKey);this.events.once('shutdown',()=>{this.closed=true;this.enemyEffect?.destroy();this.enemyEffect=null;this.commandSelection?.destroy();this.stopWatchingBattleText?.();this.writer=null;this.transition?.destroy();this.transition=null;sound.battle.stop();sound.argus.stop();sound.stopEffects('fanfare');sound.stopEffects('victory');this.input.keyboard.off('keydown',this.onKey);resetControls();});
  }
  update(time,delta){
   if(this.closed)return;if(time-this.patternTime>=32){drawBattleBackdrop(this.pattern.context,time);this.pattern.refresh();this.patternTime=time;}
@@ -355,7 +357,8 @@ class BattleScene extends SceneBase{
   // Falling HP remains paused during notices, as in the existing battle UI.
   if(this.notice){if(this.battle.hp<this.battle.targetHp)rollHealth(this.battle,delta/1000);this.updateVitals();return;}
   const before=this.battle.phase;rollHealth(this.battle,delta/1000);this.updateVitals();
-  if(before!==this.battle.phase&&this.battle.phase==='defeat'){this.actionPresentation=null;this.goodsOpen=false;this.renderHUD();return;}
+  if(before!==this.battle.phase&&this.battle.phase==='defeat'){this.enemyEffect?.destroy();this.enemyEffect=null;this.actionPresentation=null;this.goodsOpen=false;this.renderHUD();return;}
+  if(this.battle.phase==='enemyAnimation')return;
   advanceText(this,delta);
   if(this.actionPresentation&&this.writer?.done){this.actionPresentation.remaining-=Math.min(delta,100);if(this.actionPresentation.remaining<=0){this.actionPresentation=null;if(['victory','escaped'].includes(this.battle.phase)){this.renderHUD();return;}this.resolveTurn();}}
  }
@@ -389,12 +392,13 @@ class BattleScene extends SceneBase{
   this.writer=null;this.actionPresentation=null;this.input.keyboard.resetKeys();resetControls();
   this.resolveTurn();
  }
- renderEnemies(){const live=livingEnemies(this.battle),shown=live.length?live:[targetEnemy(this.battle)];for(const foe of this.battle.enemies){let sprite=this.enemySprites.get(foe.uid);if(!sprite){sprite=this.add.image(1010,838,foe.stats.portrait,foe.stats.frame||(foe.stats.portrait==='courier-battle'?undefined:'portrait')).setOrigin(.5,1);this.enemySprites.set(foe.uid,sprite);}const index=shown.indexOf(foe);sprite.setVisible(index>=0);if(index>=0){const count=shown.length,x=count===1?1010:count===2?860+index*430:765+index*300;sprite.setPosition(x,count===1?838:790).setScale(Math.min((count===1?635:470)/sprite.height,(count===1?610:count===2?365:260)/sprite.width)*(foe.stats.battleScale??1));sprite.setAlpha(foe.hp>0?1:.5);}}}
+ renderEnemies(){const live=livingEnemies(this.battle),shown=live.length?live:[targetEnemy(this.battle)];for(const foe of this.battle.enemies){let sprite=this.enemySprites.get(foe.uid);if(!sprite){sprite=this.add.image(1010,838,foe.stats.portrait,foe.stats.frame||(foe.stats.portrait==='courier-battle'?undefined:'portrait')).setOrigin(.5,1).setDepth(100);this.enemySprites.set(foe.uid,sprite);}const index=shown.indexOf(foe);sprite.setVisible(index>=0);if(index>=0){const count=shown.length,x=count===1?1010:count===2?860+index*430:765+index*300;sprite.setPosition(x,count===1?838:790).setScale(Math.min((count===1?635:470)/sprite.height,(count===1?610:count===2?365:260)/sprite.width)*(foe.stats.battleScale??1));sprite.setAlpha(foe.hp>0?1:.5);}}}
  targetButtons(){const b=this.battle;if(livingEnemies(b).length<2||['victory','defeat','escaped'].includes(b.phase))return '';return '<div class="battle-targets" aria-label="Choose attack target">'+livingEnemies(b).map((e,i)=>'<button data-action="target-'+e.uid+'" aria-pressed="'+(targetEnemy(b).uid===e.uid)+'" '+(b.phase!=='command'?'disabled':'')+'><span>'+esc(e.stats.name)+' '+String.fromCharCode(65+i)+'</span><small>'+e.hp+' / '+e.maxHp+' HP'+(e.charged?' · Charging':'')+'</small></button>').join('')+'</div>';}
  resolveTurn(){
   if(this.closed||this.battle.phase!=='resolving')return;
   const result=nextTurn(this.battle),b=this.battle;
   if(result.roundComplete){this.renderHUD();finishText(this);this.input.keyboard.resetKeys();resetControls();return;}
+  if(result.type==='tidal-wave'){this.playScreenAttack(result);return;}
   if(result.actor==='enemy'&&result.damage){sound.effect('bash');this.cameras.main.shake(90,.002);}
   if(result.actor==='hero'&&result.action==='attack'){sound.effect('vibrosword');const sprite=this.enemySprites.get(result.targetUid);if(!result.miss&&sprite){sprite.setTintFill(0xd6f3d7);this.time.delayedCall(100,()=>sprite.clearTint());}}
   if(result.actionMessage)b.message=result.actionMessage;
@@ -402,9 +406,19 @@ class BattleScene extends SceneBase{
   if(result.itemId&&result.ok)this.notice={kind:'healing',recovered:result.recovered,itemName:result.itemName};
   this.renderHUD();
  }
+ playScreenAttack(result){
+  const b=this.battle;this.actionPresentation=null;this.renderHUD();this.writer=null;
+  this.enemyEffect=new TidalWaveEffect(this,{host:$('#stage'),sound,
+   onImpact:()=>{if(!this.closed)applyEnemyImpact(b,result.impact);},
+   onComplete:()=>{
+    this.enemyEffect=null;if(this.closed||!finishEnemyAnimation(b,result.impact))return;
+    this.actionPresentation={remaining:950};this.renderHUD();this.input.keyboard.resetKeys();resetControls();
+   }
+  });
+ }
  updateVitals(){const b=this.battle;if($('#hero-hp'))$('#hero-hp').textContent=String(Math.ceil(b.hp)).padStart(3,'0');if($('#hero-hp-bar'))$('#hero-hp-bar').style.width=b.hp/b.maxHp*100+'%';if($('#enemy-hp'))$('#enemy-hp').style.width=b.enemyHp/b.enemyMaxHp*100+'%';}
  handleAction(action){
-  if(this.closed||this.transition)return;if(this.notice){if(action==='notice-next')this.advanceNotice();return;}if(this.actionPresentation)return;const b=this.battle;if(action==='return'&&['victory','defeat','escaped'].includes(b.phase)){this.closed=true;if(b.phase==='escaped'){escapeProgress(progress,b);save();this.scene.start(state.origin.scene||'Explore',{...state.origin,afterBattle:true});return;}if(b.phase==='defeat'&&state.origin?.scene==='Fairmont'){abortFairmontBattle(progress,state.encounter);restore(progress);carryBattleInventory(progress,b);if(state.encounter.spawnId)defeatFairmontSpawn(state.fairmontSlots?.[state.encounter.region],state.encounter.spawnId);const checkpoint={location:'fairmont-clinic',position:{x:768,y:760}};progress.location=checkpoint.location;progress.position=checkpoint.position;save();this.scene.start('Fairmont',{...checkpoint,afterBattle:true});return;}if(b.phase==='defeat'){restore(progress);carryBattleInventory(progress,b);if(state.encounter.spawnId)defeatedSpawn(state.dungeonSlots[state.encounter.region]||state.slots,state.encounter.spawnId);const inFacility=WATER_FLOORS.includes(state.encounter.region);const tutorial=b.id==='courier'&&!progress.flags.policeReported;progress.location=inFacility?state.encounter.region:tutorial?'lab':'clinic';progress.position=inFacility?{...floorData(state.encounter.region).arrival}:{x:768,y:838};if(tutorial){progress.opening='courier_ready';}save();this.scene.start('Explore',{location:progress.location,position:progress.position,afterBattle:true});}else this.scene.start(state.origin.scene||'Explore',{...state.origin,afterBattle:true});return;}
+  if(this.closed||this.transition||this.battle.phase==='enemyAnimation')return;if(this.notice){if(action==='notice-next')this.advanceNotice();return;}if(this.actionPresentation)return;const b=this.battle;if(action==='return'&&['victory','defeat','escaped'].includes(b.phase)){this.closed=true;if(b.phase==='escaped'){escapeProgress(progress,b);save();this.scene.start(state.origin.scene||'Explore',{...state.origin,afterBattle:true});return;}if(b.phase==='defeat'&&state.origin?.scene==='Fairmont'){abortFairmontBattle(progress,state.encounter);restore(progress);carryBattleInventory(progress,b);if(state.encounter.spawnId)defeatFairmontSpawn(state.fairmontSlots?.[state.encounter.region],state.encounter.spawnId);const checkpoint={location:'fairmont-clinic',position:{x:768,y:760}};progress.location=checkpoint.location;progress.position=checkpoint.position;save();this.scene.start('Fairmont',{...checkpoint,afterBattle:true});return;}if(b.phase==='defeat'){restore(progress);carryBattleInventory(progress,b);if(state.encounter.spawnId)defeatedSpawn(state.dungeonSlots[state.encounter.region]||state.slots,state.encounter.spawnId);const inFacility=WATER_FLOORS.includes(state.encounter.region);const tutorial=b.id==='courier'&&!progress.flags.policeReported;progress.location=inFacility?state.encounter.region:tutorial?'lab':'clinic';progress.position=inFacility?{...floorData(state.encounter.region).arrival}:{x:768,y:838};if(tutorial){progress.opening='courier_ready';}save();this.scene.start('Explore',{location:progress.location,position:progress.position,afterBattle:true});}else this.scene.start(state.origin.scene||'Explore',{...state.origin,afterBattle:true});return;}
   if(action.startsWith('target-')){if(selectTarget(b,Number(action.slice(7))))this.renderHUD();return;}
   if(b.phase!=='command')return;
   if(action==='goods'||action==='goods-back'){this.goodsOpen=action==='goods';this.renderHUD();finishText(this);this.input.keyboard.resetKeys();resetControls();return;}
