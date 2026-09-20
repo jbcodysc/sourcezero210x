@@ -43,8 +43,8 @@ test('macchiato heals 15, refreshes without stacking, and boosts exactly three f
  carryBattleInventory(p,b);const next=createEncounter('loader',p);assert.equal(next.speedBoostTurns,3);assert.equal(effectiveSpeed(next),next.speed*1.3);
  const outside=hero();outside.inventory.push('caramel-macchiato');assert.ok(useInventoryItem(outside,'caramel-macchiato').ok);assert.equal(outside.speedBoostTurns,3);
 });
-test('missile volley does 295 independent of level and armor, while Guard still reduces it',()=>{
- for(const level of [12,20,27,50]){const p=freshProgress();award(p,xpThreshold(level),0);p.armor='laminate-vest';const b=createEncounter('argus',p);b.enemyHp=200;b.phase='resolving';b.enemyQueue=[0];const result=enemyAction(b,()=>.5,{queued:true});assert.equal(result.impact.damage,295);for(let i=0;i<3;i++)applyEnemyImpact(b,result.impact,i);assert.equal(b.message,'A missile volley was fired, doing massive 295 damage!');}
+test('missile volley does 472 independent of level and armor, while Guard still reduces it',()=>{
+ for(const level of [12,20,27,50]){const p=freshProgress();award(p,xpThreshold(level),0);p.armor='laminate-vest';const b=createEncounter('argus',p);b.enemyHp=200;b.phase='resolving';b.enemyQueue=[0];const result=enemyAction(b,()=>.5,{queued:true});assert.equal(result.impact.damage,472);for(let i=0;i<3;i++)applyEnemyImpact(b,result.impact,i);assert.equal(b.message,'A missile volley was fired, doing massive 472 damage!');}
 });
 test('post-22 XP rises sharply without a cap; old high-level saves retain level and progress fraction once',()=>{
  assert.equal(xpThreshold(22),11025);assert.equal(xpThreshold(23)-xpThreshold(22),2688);assert.equal(xpThreshold(24)-xpThreshold(23),3764);assert.ok(xpThreshold(100)>xpThreshold(99));

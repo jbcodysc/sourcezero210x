@@ -53,7 +53,7 @@ export function playerAction(b,action,rng=Math.random,{queued=false}={}){
  if(action==='attack'){
   miss=rng()<MISS_RATE;
   if(miss)b.message='Your vibrosword cuts empty air. Miss!';
-  else{damage=b.heroAttack+(foe.charged?4:0);foe.hp=Math.max(0,foe.hp-damage);if(foe.stats.retreatAtOne&&foe.hp===0){foe.hp=1;foe.retreating=true;foe.charged=false;}b.message='Your vibrosword strikes '+foe.stats.name+'. '+damage+' damage!';if(!foe.hp)b.message+=' '+(foe.stats.kind==='human'?'They retreat.':'It shuts down.');}
+  else{damage=Math.max(1,Math.round((b.heroAttack+(foe.charged?4:0))*(foe.stats.incomingDamageMultiplier??1)));foe.hp=Math.max(0,foe.hp-damage);if(foe.stats.retreatAtOne&&foe.hp===0){foe.hp=1;foe.retreating=true;foe.charged=false;}b.message='Your vibrosword strikes '+foe.stats.name+'. '+damage+' damage!';if(!foe.hp)b.message+=' '+(foe.stats.kind==='human'?'They retreat.':'It shuts down.');}
  }
  if(action==='guard')b.message='You brace behind the vibrosword. Damage is reduced for this turn.';
  const itemId=actionItem(action),item=CONSUMABLES[itemId];
@@ -70,7 +70,7 @@ export function enemyAction(b,rng=Math.random,{queued=false}={}){
  if(!foe){if(!queued){b.phase='command';b.guarding=false;}return {ok:false};}
  if(foe.stats.missileVolleyPower&&!foe.missileVolleyUsed&&foe.hp<=foe.maxHp*.2){
   foe.missileVolleyUsed=true;foe.charged=false;foe.turn++;
-  const miss=rng()<MISS_RATE;let damage=foe.stats.missileVolleyPower;
+  const miss=rng()<MISS_RATE;let damage=Math.round(foe.stats.missileVolleyPower*(foe.stats.outgoingDamageMultiplier??1));
   if(b.guarding)damage=Math.ceil(damage*.3);
   damage=miss?0:damage;
   const hits=[Math.floor(damage/3),Math.floor(damage/3),damage-2*Math.floor(damage/3)];
@@ -100,7 +100,7 @@ export function enemyAction(b,rng=Math.random,{queued=false}={}){
  }else{
   const charged=foe.charged;foe.charged=false;
   if(rng()<MISS_RATE){result.type='miss';b.message=name+' '+(charged?'releases its big attack too wide. Miss!':'swings past you. Miss!');}
-  else{let damage=Math.max(4,(charged?foe.stats.charge:foe.stats.attack+(foe.turn%2===0?3:0))-b.defense);if(b.guarding)damage=Math.ceil(damage*.3);damage=Math.round(damage*ENEMY_DAMAGE_MULTIPLIER);result.damage=damage;b.targetHp=Math.max(0,b.targetHp-damage);b.message=name+': '+((charged?foe.stats.chargedText:foe.stats.attackText)|| (foe.id==='regulator'?(charged?'An electrical outburst erupts through the spray!':foe.turn%2===0?'It tears a pipe loose and hurls it at you!':'A pressurized water blast knocks you back!'):foe.stats.kind==='human'?(charged?'A full-body shove!':'A fist catches your shoulder.'):foe.stats.kind==='animal'?(charged?'It launches itself at your shoulder!':'Sharp teeth catch your sleeve.'):(charged?'A charged restraint pulse tears through the air!':'A plated arm slams into you.')))+' '+damage+' damage.';}
+  else{let damage=Math.max(4,(charged?foe.stats.charge:foe.stats.attack+(foe.turn%2===0?3:0))-b.defense);if(b.guarding)damage=Math.ceil(damage*.3);damage=Math.round(Math.round(damage*ENEMY_DAMAGE_MULTIPLIER)*(foe.stats.outgoingDamageMultiplier??1));result.damage=damage;b.targetHp=Math.max(0,b.targetHp-damage);b.message=name+': '+((charged?foe.stats.chargedText:foe.stats.attackText)|| (foe.id==='regulator'?(charged?'An electrical outburst erupts through the spray!':foe.turn%2===0?'It tears a pipe loose and hurls it at you!':'A pressurized water blast knocks you back!'):foe.stats.kind==='human'?(charged?'A full-body shove!':'A fist catches your shoulder.'):foe.stats.kind==='animal'?(charged?'It launches itself at your shoulder!':'Sharp teeth catch your sleeve.'):(charged?'A charged restraint pulse tears through the air!':'A plated arm slams into you.')))+' '+damage+' damage.';}
  }
  foe.turn++;if(!queued&&!b.enemyQueue.length&&!b.pendingReinforcement){b.turn++;b.guarding=false;b.phase='command';}
  return result;
