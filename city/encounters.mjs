@@ -70,7 +70,7 @@ export function enemyAction(b,rng=Math.random,{queued=false}={}){
  if(!foe){if(!queued){b.phase='command';b.guarding=false;}return {ok:false};}
  if(foe.stats.missileVolleyPower&&!foe.missileVolleyUsed&&foe.hp<=foe.maxHp*.2){
   foe.missileVolleyUsed=true;foe.charged=false;foe.turn++;
-  const miss=rng()<MISS_RATE;let damage=Math.round(foe.stats.missileVolleyPower*(foe.stats.outgoingDamageMultiplier??1));
+  const miss=rng()<MISS_RATE;let damage=foe.stats.missileVolleyPower;
   if(b.guarding)damage=Math.ceil(damage*.3);
   damage=miss?0:damage;
   const hits=[Math.floor(damage/3),Math.floor(damage/3),damage-2*Math.floor(damage/3)];

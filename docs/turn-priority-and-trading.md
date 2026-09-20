@@ -4,7 +4,7 @@ Healing goods and Guard act before every enemy, without changing the enemies’ 
 
 Caramel macchiato heals 15 HP and grants +30% speed for three full following combat rounds. The drinking round does not spend a boosted round because items already have priority. Another cup refreshes the duration without stacking. Remaining rounds persist across battles and saves; using coffee outside combat prepares three boosted rounds for the next encounter. Coffee can be used at full HP.
 
-S.C.R.A.P.’s missile volley deals a fixed 472 damage after his 60% outgoing-damage increase, split across its existing three impacts. Guard reduces the total to 142; the existing miss chance is unchanged. Only the five words of his spoken designation use slower typing, italic metallic lettering, and shimmer.
+S.C.R.A.P.’s missile volley deals a fixed 295 damage, exempt from his 60% outgoing-damage increase, split across its existing three impacts. Guard reduces the total to 89; the existing miss chance is unchanged. Only the five words of his spoken designation use slower typing, italic metallic lettering, and shimmer.
 
 ## Shop behavior
 
