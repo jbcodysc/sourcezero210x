@@ -8,6 +8,7 @@ import {saleInventory,sellItem} from '../city/shop.mjs';
 import {inventoryEntries,useInventoryItem} from '../city/core-status.mjs';
 import {SaveSlots} from '../city/save-slots.mjs';
 import {argusTypingStyle,argusTextMarkup} from '../city/argus-dialogue.mjs';
+import {createFairmontScene} from '../fairmont/scene.mjs';
 import {ARGUS_SCENE} from '../fairmont/story.mjs';
 import {Typewriter} from '../lab/presentation.mjs';
 
@@ -74,4 +75,20 @@ test('facility XP rewards rise about 25% while later levels require steadily mor
  for(const [id,xp]of Object.entries(previous)){assert.ok(ENEMIES[id].xp>=xp*1.25);assert.ok(ENEMIES[id].xp<=xp*1.28);}
  assert.equal(ENEMIES.retailCleaner.xp,180);assert.equal(ENEMIES.scriptedScanDrone.xp,70);
  const gains=[23,24,25,26].map(level=>xpThreshold(level)-xpThreshold(level-1));assert.deepEqual(gains,[2688,3764,4840,5916]);
+});
+
+
+test('shop stock stays specialized and never gains sold items, including after reopening',()=>{
+ const previousDocument=globalThis.document;globalThis.document={querySelector:()=>({className:''})};
+ try{
+  const p=hero();const Scene=createFairmontScene({Base:class{},getProgress:()=>p,resetControls(){}}),scene=new Scene();let shop;
+  scene.openShop=options=>{shop=options;};
+  for(const id of ['vendor','barista','diner-owner']){
+   scene.openFairmontService(id);const stock=shop.offers.map(offer=>offer[0]);
+   if(id==='vendor')assert.deepEqual(stock,['resonant-drive','laminate-vest']);
+   else{assert.ok(stock.includes('snack'));assert.ok(stock.includes('field-meal'));assert.ok(!stock.includes('resonant-drive'));assert.ok(!stock.includes('laminate-vest'));}
+   const before=p.snacks;assert.ok(sellItem(p,'sandwich').ok);assert.equal(p.snacks,before-1);
+   scene.openFairmontService(id);assert.deepEqual(shop.offers.map(offer=>offer[0]),stock);
+  }
+ }finally{globalThis.document=previousDocument;}
 });

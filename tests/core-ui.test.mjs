@@ -26,7 +26,7 @@ test('Items combines owned gear and consumables, CHECK reports healing, USE cons
  useInventoryItem(s,'insulated-vest');assert.equal(s.armor,'insulated-vest');useInventoryItem(s,'laminate-vest');assert.equal(s.armor,'laminate-vest');
  useInventoryItem(s,'insulated-grip');assert.equal(s.upgrade,1);useInventoryItem(s,'resonant-drive');assert.equal(s.upgrade,2);
  assert.equal(useInventoryItem(s,'fairmont-service-keycard').ok,false);
- const storage={getItem(){return this.value;},setItem(k,v){this.value=v;}};new SaveSlots(storage).write(0,s);const loaded=new SaveSlots(storage).read(0);assert.equal(loaded.snacks,0);assert.equal(loaded.armor,'laminate-vest');assert.equal(loaded.upgrade,2);
+ const storage={getItem(){return this.value;},setItem(k,v){this.value=v;}};new SaveSlots(storage).write(0,s);const loaded=new SaveSlots(storage).read(0);assert.equal(loaded.snacks,old-2);assert.equal(loaded.armor,'laminate-vest');assert.equal(loaded.upgrade,2);
 });
 
 function uiHarness(){
@@ -50,7 +50,7 @@ test('Status and Items are the only menu tabs; item result owns input until ackn
  h.ui.destroy();assert.equal(h.scene.locked,false);assert.equal(h.scene.time.paused,false);
 });
 test('post-scan preset grants only available equipment/access and leaves the facility and optional quest unfinished',()=>{
- const p=createChapterProgress('2-facility','Avery');assert.equal(p.level,20);assert.equal(p.hp,p.maxHp);assert.equal(p.location,'fairmont');assert.ok(worldWalkable(p.location,p.position.x,p.position.y));
+ const p=createChapterProgress('2-facility','Avery');assert.equal(p.level,24);assert.equal(p.hp,p.maxHp);assert.equal(p.credits,5000);for(const id of ['sandwich','field-meal','caramel-macchiato'])assert.equal(inventoryEntries(p).find(item=>item.id===id).count,10);assert.equal(p.location,'fairmont');assert.ok(worldWalkable(p.location,p.position.x,p.position.y));
  assert.equal(canEnter(p,'facility'),true);assert.equal(p.flags.CH2_ARGUS_DEFEATED,undefined);assert.equal(p.flags.CH2_DRONE_FACILITY_ENTERED,undefined);assert.equal(p.flags.CH2_COMPLETE,undefined);assert.equal(resumeEvent(p),null);
  assert.equal(p.flags.CH2_DEREK_COMPLETE,undefined);assert.ok(['expired','unavailable'].includes(derekStatus(p)));assert.match(objective(p),/facility service entrance/);
  for(const flag of ['CH2_RADIO_HUT_BARGAIN','CH2_BELLWETHER_FINISHED','CH2_WRM_CLEARED','CH2_KAREN_DEFEATED','CH2_DAY2','CH2_PLAYER_SCANNED','CH2_CITY_SECURITY_HOSTILE','CH2_DRONE_KEYCARD'])assert.equal(p.flags[flag],true,flag);

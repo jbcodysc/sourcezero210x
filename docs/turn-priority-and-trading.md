@@ -8,7 +8,7 @@ S.C.R.A.P.’s missile volley deals a fixed 295 damage, split across its existin
 
 ## Shop behavior
 
-Existing merchandise shops in both towns open Buy/Sell after their greeting. Buy preserves their original stock. Sell lists regular items, excludes key items, and pays half the item’s value rounded down. Equipped gear has a bold E and cannot be sold. Unequipped gear asks for confirmation, defaulting to No; cancellation returns to item selection. Each completed sale has an acknowledgement before another item can be sold.
+Existing merchandise shops in both towns open Buy/Sell after their greeting. Machinists sell only upgrades and equipment; delis and coffee shops sell only food and drink. All merchandise shops still buy every sellable item, regardless of their own stock. Sold copies are permanently removed, with no buyback list and no additions to shop stock. Buying a normally stocked sandwich purchases a new copy at its usual full price. Sell lists regular items, excludes key items, and pays half the item’s value rounded down. Equipped gear has a bold E and cannot be sold. Unequipped gear asks for confirmation, defaulting to No; cancellation returns to item selection. Each completed sale has an acknowledgement before another item can be sold.
 
 Canonical purchase prices supply resale values. The found insulated work vest has a value of 100 credits and sells for 50. The insulated grip costs 85 and sells for 42. Gear ownership is now explicit in the inventory. Older saves migrate their formerly implicit weapon upgrades once, so selling an unequipped upgrade does not make it reappear after a reload.
 
@@ -30,3 +30,5 @@ Drone-facility rewards rise about 25%: facility security 465, test drone 440, he
 ## Verification
 
 Automated coverage verifies action priority, round-limited Guard, reinforcement timing, escape odds, coffee duration, fixed missile damage, XP requirements and save migration, gear ownership and resale, and designation typing. Browser checks exercised Fairmont and Bellwether shops, equipped-item rejection, Yes/No gear sales, buying, the styled introduction, a very slow hero acting first with Guard and coffee, and an announcement followed by a helper that waits until the next round to attack. The QA fixture uses separate disposable local saves and is not shipped with the game.
+
+The Drone Facility chapter-select preset starts at level 24 with 5,000 credits, full HP, ten sandwiches, ten hearty field meals, and ten caramel macchiatos. Its equipment, keycard, and story checkpoint are unchanged. Existing saves and the earlier chapter presets are unaffected.
