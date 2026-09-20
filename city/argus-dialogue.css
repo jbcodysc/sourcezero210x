@@ -12,3 +12,6 @@
 
 .battle-boss-speaking .battle-topline,.battle-boss-speaking .battle-log{visibility:hidden}
 .battle-boss-speaking .dialog-argus{z-index:30}
+.dialog-argus .argus-designation{font-style:italic;font-weight:900;color:#d8f7ff;background:linear-gradient(110deg,#83becf 12%,#f5feff 29%,#a7d5e4 43%,#fff2b0 55%,#f5feff 62%,#83becf 85%);background-size:250% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;filter:drop-shadow(0 0 1px #a9eeff);animation:designation-shine 2.8s linear infinite}
+@keyframes designation-shine{to{background-position:250% 0}}
+@media(prefers-reduced-motion:reduce){.dialog-argus .argus-designation{animation:none}}

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {ARGUS_PANEL_IMAGE,isArgusLine,argusPanelMarkup,argusTextMarkup} from '../city/argus-dialogue.mjs';
+import {ARGUS_PANEL_IMAGE,isArgusLine,argusPanelMarkup,argusTextMarkup,argusTypingStyle} from '../city/argus-dialogue.mjs';
 import {Typewriter} from '../lab/presentation.mjs';
 import {CityAudio} from '../city/audio.mjs';
 
@@ -47,7 +47,7 @@ function dialogueHarness(){
  const helpers=source.slice(source.indexOf('function textSlot('),source.indexOf('function sceneUI('));
  const methods=source.slice(source.indexOf(' showDialogue('),source.indexOf('\n openJournal('));
  assert.ok(methods.includes(' closeDialogue('),'the actual dialogue lifecycle is included');
- const sandbox={$: $,Typewriter,isArgusLine,argusPanelMarkup,argusTextMarkup,esc:escape,heroName:()=> 'Morgan',heroLines:items=>items,
+ const sandbox={$: $,Typewriter,isArgusLine,argusPanelMarkup,argusTextMarkup,argusTypingStyle,esc:escape,heroName:()=> 'Morgan',heroLines:items=>items,
   sound:{letter(character,voice){voices.push({character,voice});}},resetControls:()=>resets.push('controls'),VIEW:{width:1200,height:800},
   conversationAnchor(...args){anchors.push(args);return {x:17,y:29};}};
  const api=vm.runInNewContext(helpers+'\nclass DialogueScene {'+methods+'}\n({DialogueScene,advanceText,finishText})',sandbox);

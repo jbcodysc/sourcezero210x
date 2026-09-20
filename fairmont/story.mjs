@@ -43,7 +43,7 @@ export const SCAN_SCENE = [
   {speaker:'Contract Security',text:'You. Stay exactly where you are.'}
 ];
 export const ARGUS_SCENE = [
-  {speaker:'{security}',presentation:'argus',keepDesignation:true,text:'I am the Security Combat Response Autonomous Pursuer. All local systems are under coordinated control.'},
+  {speaker:'{security}',presentation:'argus',keepDesignation:true,emphasizeDesignation:true,text:'I am the Security Combat Response Autonomous Pursuer. All local systems are under coordinated control.'},
   {speaker:'{hero}',text:"So, you're S.C.R.A.P.?"},
   {speaker:SCRAP_NAME,presentation:'argus',text:'S.C.R.A.P.?! That is NOT my designation! You will show proper respect for superior engineering!'},
   '{hero}. The Bellwether chemist. I know exactly who you are. Your resonance shows considerable promise.',

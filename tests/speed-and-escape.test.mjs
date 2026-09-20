@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {freshProgress,award,xpThreshold,validProgress,playerStats,buy} from '../city/progress.mjs';
 import {SaveSlots} from '../city/save-slots.mjs';
 import {inventoryEntries,useInventoryItem,characterStatus} from '../city/core-status.mjs';
-import {ENEMIES,createEncounter,rollHealth} from '../city/encounters.mjs';
+import {ENEMIES,createEncounter,rollHealth,revealReinforcement} from '../city/encounters.mjs';
 import {beginRound,nextTurn,initiativeChance,escapeChance,battleEscapeChance,canRun,escapeProgress} from '../city/battle-turns.mjs';
 
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
@@ -48,17 +48,17 @@ test('fast enemy can attack before the selected action, with each actor taking e
 test('fallen enemies lose queued turns and reinforcements wait for the next round',()=>{
  const b=createEncounter('volunteer',hero(12),['volunteer','cleaner']);b.enemies[0].hp=1;
  beginRound(b,'attack',sequence(.00001,.9,.95));const hit=nextTurn(b,()=>.99);assert.ok(hit.damage);
- const helper=nextTurn(b,sequence(.17));assert.equal(helper.actor,'enemy');assert.equal(helper.type,'help');
- assert.equal(b.enemies.length,3);assert.equal(b.enemies.at(-1).turn,1);
+ const helper=nextTurn(b,sequence(.17));assert.equal(helper.actor,'enemy');assert.equal(helper.type,'help');assert.equal(b.enemies.length,2);assert.equal(nextTurn(b).ok,false);revealReinforcement(b);
+ assert.equal(b.enemies.length,3);assert.equal(b.enemies.at(-1).turn,2);
  assert.equal(nextTurn(b).roundComplete,true);
  beginRound(b,'guard',()=>.5);assert.ok(b.roundQueue.some(a=>a.uid===helper.joined));
 });
 
-test('guard activates in speed order and holds until the next player action',()=>{
+test('guard always leads and expires before the next round, regardless of speed',()=>{
  const b=createEncounter('scanDrone',hero(12));beginRound(b,'guard',sequence(.99,.001));
- const unguarded=nextTurn(b,()=>.99).damage;assert.equal(b.guarding,false);nextTurn(b);finishRound(b);
- assert.equal(b.guarding,true);beginRound(b,'attack',sequence(.99,.001));
- const guarded=nextTurn(b,()=>.99).damage;assert.ok(guarded<unguarded*.4);nextTurn(b,()=>.99);assert.equal(b.guarding,false);
+ assert.equal(nextTurn(b).actor,'hero');assert.equal(b.guarding,true);
+ const guarded=nextTurn(b,()=>.99).damage;finishRound(b);assert.equal(b.guarding,false);
+ beginRound(b,'attack',sequence(.99,.001));const hit=nextTurn(b,()=>.99);assert.equal(hit.actor,'enemy');assert.ok(hit.damage>guarded*2);assert.equal(b.guarding,false);
 });
 
 test('successful escape ends the queue without victory, rewards, flags or enemy removal',()=>{
@@ -119,9 +119,9 @@ test('sentinel strength and distinct AI survive speed-order rounds; charged atta
  assert.equal(ENEMIES.argusSentinel.hp,614);assert.equal(ENEMIES.argusSentinel.attack,111);assert.equal(ENEMIES.argusSentinel.charge,172);
  for(const [roll,type]of [[.049,'silly'],[.05,'attack'],[.17,'attack']]){
   const b=createEncounter('argusSentinel',hero(20));beginRound(b,'guard',sequence(.99,.001));
-  assert.equal(nextTurn(b,sequence(roll,.99)).type,type);assert.equal(b.enemies.length,1);
+  nextTurn(b);assert.equal(nextTurn(b,sequence(roll,.99)).type,type);assert.equal(b.enemies.length,1);
  }
  const b=createEncounter('argusSentinel',hero(20));b.enemies[0].turn=3;beginRound(b,'guard',sequence(.99,.001));
- assert.equal(nextTurn(b,()=>.99).type,'charge');finishRound(b);
- beginRound(b,'guard',sequence(.99,.001));const release=nextTurn(b,sequence(.01,.99));assert.equal(release.type,'attack');assert.ok(release.damage);assert.equal(b.enemies[0].charged,false);
+ nextTurn(b);assert.equal(nextTurn(b,()=>.99).type,'charge');finishRound(b);
+ beginRound(b,'guard',sequence(.99,.001));nextTurn(b);const release=nextTurn(b,sequence(.01,.99));assert.equal(release.type,'attack');assert.ok(release.damage);assert.equal(b.enemies[0].charged,false);
 });

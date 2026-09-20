@@ -77,6 +77,7 @@ export class CoreGameUI{
    if(this.result){if(confirm||k==='escape')this.action('core-result');return;}
    this.menuKey(k,confirm);return;
   }
+  if(s.menu&&s.shopUI?.options){s.shopUI.key(e);return;}
   if(s.menu){if(confirm||k==='escape')e.preventDefault();if(k==='escape')s.closeMenu();else if(confirm)(this.overlay.ownerDocument.activeElement?.closest('#overlay button')||this.overlay.querySelector('button'))?.click();else s.chooseMenuKey?.(e);return;}
   if(s.cutscene){if(confirm){e.preventDefault();s.advanceNarration();}return;}
   if(s.arrival||s.transitioning||s.locked)return;

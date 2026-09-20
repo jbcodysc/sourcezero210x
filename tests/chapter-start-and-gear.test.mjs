@@ -17,7 +17,7 @@ test('Chapter 2 begins at the daytime bus arrival with complete Chapter 1 prereq
  const s=createChapterProgress(2,'Finley');
  assert.ok(validProgress(s));assert.equal(s.level,15);assert.equal(s.xp,xpThreshold(15));assert.equal(s.hp,s.maxHp);assert.equal(s.location,'fairmont');
  assert.equal(s.credits,2000);assert.deepEqual(playerStats(s),{health:278,attack:79,defense:33,speed:19});
- assert.deepEqual(s.inventory,['insulated-vest']);assert.equal(s.snacks,2);
+ assert.deepEqual(s.inventory,['insulated-grip','insulated-vest']);assert.equal(s.snacks,2);
  assert.equal(timeOfDay(s),'day');assert.equal(resumeEvent(s),null);assert.equal(s.flags.CH2_ARRIVED,true);
  assert.equal(s.flags.CH2_MODULE_REMINDER_SEEN,undefined);assert.equal(s.flags.CH2_RADIO_HUT_BARGAIN,undefined);
  for(const flag of ['waterRestored','relayTaken','badgeFixed'])assert.equal(s.flags[flag],true);

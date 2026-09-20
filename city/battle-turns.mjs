@@ -1,4 +1,4 @@
-import {livingEnemies,playerAction,enemyAction,validatePlayerAction} from './encounters.mjs';
+import {livingEnemies,playerAction,enemyAction,validatePlayerAction,actionItem,effectiveSpeed} from './encounters.mjs';
 
 // Quartic weighting makes a small speed advantage useful: 6:5 = 67.46%,
 // 10:5 = 94.12%. Exponential races give a coherent order for whole groups,
@@ -6,14 +6,15 @@ import {livingEnemies,playerAction,enemyAction,validatePlayerAction} from './enc
 export const initiativeChance=(speed,opponent)=>1/(1+(opponent/speed)**4);
 export const escapeChance=(speed,opponent)=>Math.max(.05,Math.min(.75,.3+.35*Math.log(speed/opponent)/Math.log(3)));
 export const canRun=b=>!b.enemies.some(e=>e.stats.boss||e.id==='courier'||e.id==='scriptedScanDrone');
-export const battleEscapeChance=b=>canRun(b)?escapeChance(b.speed,Math.max(...livingEnemies(b).map(e=>e.stats.speed))):0;
+export const battleEscapeChance=b=>!canRun(b)?0:livingEnemies(b).length===3?.66:escapeChance(effectiveSpeed(b),Math.max(...livingEnemies(b).map(e=>e.stats.speed)));
 
 export function beginRound(b,action,rng=Math.random){
  const valid=validatePlayerAction(b,action);if(!valid.ok)return valid;
  if(action==='run'&&!canRun(b))return {ok:false,message:'There is no escape from this story encounter.'};
- b.pendingAction=action;
- const actors=[{who:'hero',speed:b.speed},...livingEnemies(b).map(e=>({who:'enemy',uid:e.uid,speed:e.stats.speed}))];
+ b.pendingAction=action;b.guarding=false;
+ const actors=[{who:'hero',speed:effectiveSpeed(b)},...livingEnemies(b).map(e=>({who:'enemy',uid:e.uid,speed:e.stats.speed}))];
  b.roundQueue=actors.map(actor=>({...actor,key:-Math.log(Math.max(Number.EPSILON,1-rng()))/actor.speed**4})).sort((a,c)=>a.key-c.key);
+ if(action==='guard'||actionItem(action)){const hero=b.roundQueue.find(a=>a.who==='hero');b.roundQueue=[hero,...b.roundQueue.filter(a=>a.who!=='hero')];}
  b.phase='resolving';return {ok:true};
 }
 
@@ -21,7 +22,7 @@ export function nextTurn(b,rng=Math.random){
  if(b.phase!=='resolving')return {ok:false};
  let actor;
  while(b.roundQueue?.length&&!actor){const next=b.roundQueue.shift();if(next.who==='hero'||b.enemies.some(e=>e.uid===next.uid&&e.hp>0))actor=next;}
- if(!actor){b.phase='command';b.pendingAction=null;b.turn++;return {ok:false,roundComplete:true};}
+ if(!actor){b.phase='command';b.pendingAction=null;b.guarding=false;if(b.speedBoostTurns>0&&b.speedBoostAppliedTurn!==b.turn)b.speedBoostTurns--;b.turn++;return {ok:false,roundComplete:true};}
  if(actor.who==='enemy'){
   b.enemyQueue=[actor.uid];return {...enemyAction(b,rng,{queued:true}),actor:'enemy'};
  }
@@ -39,7 +40,7 @@ export function nextTurn(b,rng=Math.random){
 
 // Escapes are not victories: persist only the state the player carries away.
 // Keep the overworld enemy alive and rely on the shared 2-second battle grace.
-export function carryBattleInventory(progress,b){progress.snacks=b.snacks;progress.inventory=[...b.inventory];}
+export function carryBattleInventory(progress,b){progress.snacks=b.snacks;progress.inventory=[...b.inventory];progress.speedBoostTurns=b.speedBoostTurns||0;}
 export function escapeProgress(progress,b){
  if(b.phase!=='escaped')return false;
  carryBattleInventory(progress,b);progress.hp=Math.max(1,Math.ceil(b.hp));return true;

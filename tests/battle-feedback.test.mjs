@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {freshProgress,award,playerStats,mark} from '../city/progress.mjs';
-import {createEncounter,playerAction,enemyAction,encounterRewards,rollHealth,applyEnemyImpact,finishEnemyAnimation} from '../city/encounters.mjs';
+import {createEncounter,playerAction,enemyAction,encounterRewards,rollHealth,applyEnemyImpact,finishEnemyAnimation,revealReinforcement} from '../city/encounters.mjs';
 import {beginRound,nextTurn,carryBattleInventory,escapeProgress} from '../city/battle-turns.mjs';
 import {Typewriter} from '../lab/presentation.mjs';
 const source=readFileSync(new URL('../city/city.js',import.meta.url),'utf8');
 function setup(){
  const progress=freshProgress('Jamie'),state={origin:{scene:'Explore'},encounter:{id:'volunteer'}},events=[];
  const text=source.slice(source.indexOf('class BattleScene extends'),source.indexOf('if(!P)'));
- const Battle=vm.runInNewContext(text+';BattleScene',{SceneBase:class{},TidalWaveEffect:class{constructor(scene,callbacks){this.callbacks=callbacks;}destroy(){events.push('wave-disposed');}},applyEnemyImpact,finishEnemyAnimation,progress,state,award,playerStats,mark,encounterRewards,rollHealth,carryBattleInventory,escapeProgress,beginRound:(b,a)=>beginRound(b,a,()=>.5),nextTurn:b=>{const r=nextTurn(b,()=>.5);if(r.actor==='enemy')events.push('enemy');return r;},playerAction:(b,a)=>playerAction(b,a,()=>.5),enemyAction,heroName:()=>progress.name,save:()=>events.push('save'),resetControls(){},finishText(){return false;},advanceText(s,d){s.writer?.advance(d);},sound:{setMode(){},effect(){}},$:()=>({remove(){}})});
+ const Battle=vm.runInNewContext(text+';BattleScene',{SceneBase:class{},TidalWaveEffect:class{constructor(scene,callbacks){this.callbacks=callbacks;}destroy(){events.push('wave-disposed');}},applyEnemyImpact,finishEnemyAnimation,revealReinforcement,progress,state,award,playerStats,mark,encounterRewards,rollHealth,carryBattleInventory,escapeProgress,beginRound:(b,a)=>beginRound(b,a,()=>.5),nextTurn:b=>{const r=nextTurn(b,()=>.5);if(r.actor==='enemy')events.push('enemy');return r;},playerAction:(b,a)=>playerAction(b,a,()=>.5),enemyAction,heroName:()=>progress.name,save:()=>events.push('save'),resetControls(){},finishText(){return false;},advanceText(s,d){s.writer?.advance(d);},sound:{setMode(){},effect(){}},$:()=>({remove(){}})});
  const scene=new Battle();scene.battle=createEncounter('volunteer',progress);scene.enemySprites=new Map();scene.time={now:0,delayedCall(){}};scene.input={keyboard:{resetKeys(){}}};scene.scene={start:(...args)=>events.push(args)};scene.updateVitals=()=>{};scene.patternTime=0;scene.cameras={main:{shake(){}}};
  scene.renderHUD=()=>{events.push('render');if(scene.battle.phase==='victory'&&!scene.actionPresentation)scene.reward();else scene.writer=new Typewriter(scene.battle.message,44);};
  scene.renderNotice=()=>events.push('notice');
@@ -73,4 +73,14 @@ test('BattleScene locks every command until the animated hit completes, then res
  effect.callbacks.onImpact();effect.callbacks.onImpact();assert.equal(b.targetHp,53);
  effect.callbacks.onComplete();assert.equal(scene.enemyEffect,null);assert.equal(b.phase,'resolving');assert.equal(b.message,'165 damage.');
  scene.writer.finish();for(let i=0;i<10;i++)scene.update(0,100);assert.equal(b.phase,'command');assert.equal(b.turn,2);assert.equal(events.filter(e=>e==='enemy').length,1);
+});
+
+
+test('BattleScene finishes the help announcement before showing the newcomer, then completes the round',()=>{
+ const {scene}=setup(),b=scene.battle;b.phase='resolving';b.enemyQueue=[0];b.roundQueue=[];
+ const help=enemyAction(b,()=>.17,{queued:true});assert.equal(help.type,'help');scene.actionPresentation={remaining:1100};scene.renderHUD();
+ assert.equal(b.enemies.length,1);scene.handleAction('attack');assert.equal(b.enemies.length,1);
+ scene.writer.finish();for(let i=0;i<10;i++)scene.update(0,100);assert.equal(b.enemies.length,1);
+ scene.update(0,100);assert.equal(b.enemies.length,2);assert.match(b.message,/appears!/);assert.equal(b.turn,1);
+ scene.writer.finish();for(let i=0;i<11;i++)scene.update(0,100);assert.equal(b.phase,'command');assert.equal(b.turn,2);assert.equal(b.targetHp,b.maxHp);
 });

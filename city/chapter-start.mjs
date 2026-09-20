@@ -13,7 +13,7 @@ export function createChapterProgress(chapter,name='Alex'){
  if(!CHAPTERS.some(item=>item.id===chapter))throw new RangeError('Unknown chapter');
  const s=freshProgress(name);if(chapter===1)return s;
  award(s,xpThreshold(15),0);
- Object.assign(s,{opening:'complete',hp:s.maxHp,credits:2000,snacks:2,upgrade:1,armor:'insulated-vest',inventory:['insulated-vest'],location:'fairmont',position:{...ARRIVAL},visited:['lab','city','water','fairmont']});
+ Object.assign(s,{opening:'complete',hp:s.maxHp,credits:2000,snacks:2,upgrade:1,armor:'insulated-vest',inventory:['insulated-grip','insulated-vest'],location:'fairmont',position:{...ARRIVAL},visited:['lab','city','water','fairmont']});
  for(const flag of ['courierArrived','courierDone','policeReported','manifestChecked','sampleTaken','beckMet','badge','badgeFixed','resinCleared','bastionDefeated','relayTaken','factoryDone','waterAccess','waterRestored','vestFound','chapterComplete'])s.flags[flag]=true;
  for(const id of Object.keys(STORY_XP))s.flags['xp:'+id]=true;
  s.notes.push('The delivery droid attacked me in Bellwether. The police report led nowhere.', 'The relay storage module points toward Cenexis. Ruth repaired the service badge.', 'Bellwether’s water regulator is restored. I took the bus to Fairmont Junction.');
@@ -21,7 +21,7 @@ export function createChapterProgress(chapter,name='Alex'){
  if(chapter==='2-facility'){
   for(const event of ['module-reminder','radio-bargain','hotel-sleep','bellwether-finished','wrm-enter','karen-start','karen-defeated','cut-lines','hotel-sleep','decrypt-start','guard-heard','protester-finished','scan-finished','security-defeated','keycard'])result=transition(result,event).state;
   award(result,xpThreshold(20)-result.xp,0);
-  result.inventory.push('insulated-grip','resonant-drive','laminate-vest');result.upgrade=2;result.armor='laminate-vest';result.hp=result.maxHp;
+  result.inventory.push('resonant-drive','laminate-vest');result.upgrade=2;result.armor='laminate-vest';result.hp=result.maxHp;
   const entry=rearServiceEntrance(BUILDINGS.find(b=>b.id==='facility'));
   result.location='fairmont';result.position={x:entry.x,y:entry.y-75};
  }

@@ -1,4 +1,4 @@
-import {applyEnemyImpact,finishEnemyAnimation} from '../city/encounters.mjs';
+import {applyEnemyImpact,finishEnemyAnimation,revealReinforcement} from '../city/encounters.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -29,7 +29,7 @@ test('every Fairmont reinforcement belongs to its assigned Fairmont enemy type',
     const battle=createEncounter(id,hero());
     playerAction(battle,'guard');
     const result=enemyAction(battle,()=>.17);
-    assert.equal(result.type,'help',id);
+    assert.equal(result.type,'help',id);revealReinforcement(battle);
     const helper=battle.enemies.find(enemy=>enemy.uid===result.joined);
     assert.equal(helper.id,stats.helper,id);
     assert.ok(Object.hasOwn(FAIRMONT_ENEMIES,helper.id),`${id} summoned a Chapter 1 enemy`);
@@ -42,7 +42,7 @@ test('a replacement reinforcement gets its own target identity and rewards', () 
   battle.enemies[1].hp=0;
   playerAction(battle,'guard');
   const result=enemyAction(battle,()=>.17);
-  assert.equal(result.joined,3);
+  assert.equal(result.joined,3);revealReinforcement(battle);
   assert.equal(livingEnemies(battle).length,3);
   while(battle.phase==='resolving')enemyAction(battle,()=>.1);
   assert.ok(selectTarget(battle,3));
@@ -143,7 +143,7 @@ function simulate(id,level,snacks,seed,group=null) {
     assert.ok(action.ok,'simulation chose an unavailable action');
     if(battle.phase==='bossRetreat')battle.phase='victory';
     while(battle.phase==='resolving') {
-      const result=enemyAction(battle,random);
+      const result=enemyAction(battle,random);if(result.joined!==undefined)revealReinforcement(battle);
       if(result.impact){for(let i=0;i<(result.impact.hits?.length||1);i++)applyEnemyImpact(battle,result.impact,i);finishEnemyAnimation(battle,result.impact);}
       // Settle all incoming damage before the next choice; this deliberately
       // avoids depending on fast input rescuing the rolling health counter.

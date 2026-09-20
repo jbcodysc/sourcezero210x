@@ -13,12 +13,12 @@ export function drawBattleBackdrop(context,time){
 
 // Reveal a complete message without changing its layout as letters arrive.
 export class Typewriter {
- constructor(text,charactersPerSecond=48){this.characters=Array.from(text);this.rate=charactersPerSecond;this.elapsed=0;this.count=0;}
+ constructor(text,charactersPerSecond=48,slowRanges=[]){this.characters=Array.from(text);this.rate=charactersPerSecond;this.elapsed=0;this.count=0;if(slowRanges.length){let time=0;this.schedule=this.characters.map((_,index)=>time+=1000/(slowRanges.find(r=>index>=r.start&&index<r.end)?.rate||this.rate));}}
  get done(){return this.count>=this.characters.length;}
  get text(){return this.characters.slice(0,this.count).join('');}
- advance(milliseconds){if(this.done)return this.text;if(Number.isFinite(milliseconds)&&milliseconds>0){this.elapsed+=milliseconds;this.count=Math.min(this.characters.length,Math.floor(this.elapsed*this.rate/1000));}return this.text;}
+ advance(milliseconds){if(this.done)return this.text;if(Number.isFinite(milliseconds)&&milliseconds>0){this.elapsed+=milliseconds;if(this.schedule){while(!this.done&&this.elapsed>=this.schedule[this.count])this.count++;}else this.count=Math.min(this.characters.length,Math.floor(this.elapsed*this.rate/1000));}return this.text;}
  finish(){this.elapsed=this.duration;this.count=this.characters.length;return this.text;}
- get duration(){return this.characters.length/this.rate*1000;}
+ get duration(){return this.schedule?.at(-1)??this.characters.length/this.rate*1000;}
 }
 
 // World coordinates become percentages so a dialogue stays beside its speaker.

@@ -13,14 +13,14 @@ function boss(){const p=freshProgress();award(p,xpThreshold(20),0);p.armor='lami
 test('missiles take the next turn at 20%, precede antics/charge, hit exactly three times and never repeat',()=>{
  const b=boss();b.enemyHp=287;assert.equal(attack(b).type,'attack');
  b.targetHp=b.hp=338;b.enemyHp=286;b.charged=true;const r=attack(b);assert.equal(r.type,'missile-volley');assert.equal(b.charged,false);
- assert.equal(b.targetHp,338);assert.equal(r.impact.damage,260);assert.deepEqual(r.impact.hits,[86,86,88]);
+ assert.equal(b.targetHp,338);assert.equal(r.impact.damage,295);assert.deepEqual(r.impact.hits,[98,98,99]);
  assert.equal(beginRound(b,'snack').ok,false);assert.equal(nextTurn(b).ok,false);assert.equal(finishEnemyAnimation(b,r.impact),false);
- for(const [i,hp]of [[0,252],[1,166],[2,78]]){assert.equal(applyEnemyImpact(b,r.impact,i),true);assert.equal(b.targetHp,hp);assert.equal(applyEnemyImpact(b,r.impact,i),false);}
+ for(const [i,hp]of [[0,240],[1,142],[2,43]]){assert.equal(applyEnemyImpact(b,r.impact,i),true);assert.equal(b.targetHp,hp);assert.equal(applyEnemyImpact(b,r.impact,i),false);}
  assert.equal(applyEnemyImpact(b,{...r.impact},0),false);assert.equal(finishEnemyAnimation(b,r.impact),true);
  assert.equal(b.phase,'resolving');b.enemyHp=1;for(let i=0;i<8;i++)assert.notEqual(attack(b).type,'missile-volley');
 });
-test('volley respects defense, Guard, miss rate and stale callbacks after defeat',()=>{
- const b=boss();b.enemyHp=100;b.guarding=true;assert.equal(attack(b).impact.damage,78);
+test('volley respects Guard, miss rate and stale callbacks after defeat',()=>{
+ const b=boss();b.enemyHp=100;b.guarding=true;assert.equal(attack(b).impact.damage,89);
  const miss=boss();miss.enemyHp=100;miss.phase='resolving';miss.enemyQueue=[0];const r=enemyAction(miss,()=>.01,{queued:true});
  assert.equal(r.type,'missile-volley');assert.deepEqual(r.impact.hits,[0,0,0]);
  miss.phase='defeat';assert.equal(applyEnemyImpact(miss,r.impact,1),false);assert.equal(finishEnemyAnimation(miss,r.impact),false);
@@ -30,7 +30,7 @@ test('lethal damage leaves S.C.R.A.P. at one HP, stops queued actions and freeze
  const result=playerAction(b,'attack',()=>.5,{queued:true});assert.ok(result.ok);assert.equal(b.enemyHp,1);assert.equal(b.phase,'bossRetreat');
  assert.doesNotMatch(result.actionMessage,/shuts down/);assert.deepEqual(b.roundQueue,[]);assert.equal(nextTurn(b).ok,false);
  for(let i=0;i<100;i++)rollHealth(b,.1);assert.equal(b.hp,17);assert.equal(b.targetHp,17);
- assert.deepEqual(encounterRewards(b),{xp:950,credits:450});assert.equal(playerAction(b,'attack').ok,false);
+ assert.deepEqual(encounterRewards(b),{xp:1200,credits:450});assert.equal(playerAction(b,'attack').ok,false);
  const ordinary=createEncounter('heavyDrone',freshProgress());ordinary.enemyHp=1;playerAction(ordinary,'attack',()=>.5);assert.equal(ordinary.enemyHp,0);assert.equal(ordinary.phase,'victory');
 });
 function ready(){const p=createChapterProgress('2-facility');Object.assign(p.flags,{CH2_DRONE_FACILITY_ENTERED:true,CH2_CORE_SHUTTERS:true});return transition(transition(p,'argus-entrance-start').state,'argus-entrance-complete').state;}
