@@ -1,4 +1,5 @@
 /** Chapter 2 story rules. No rendering, clocks, storage, or random effects live here. */
+import {SECURITY_DESIGNATION,SCRAP_NAME,securitySpeaker,securityText} from './security-identity.mjs';
 import {COMPACT_CITY_FLAG} from './city-density.mjs';
 export const COFFEE_PRICE = 8;
 export const COFFEE_ITEM = 'caramel-macchiato';
@@ -8,7 +9,7 @@ export const NPCS = [
   {id:'radio-owner',name:'Harlan Voss'}, {id:'hotel-clerk',name:'Lena Vale'},
   {id:'security-guard',name:'Contract Security'}, {id:'protester',name:'Jo Bell'},
   {id:'derek',name:'Derek'}, {id:'barista',name:'Tess Medina'},
-  {id:'market-manager',name:'K.A.R.E.N.'}, {id:'argus',name:'A.R.G.U.S.'},
+  {id:'market-manager',name:'K.A.R.E.N.'}, {id:'argus',name:SECURITY_DESIGNATION},
   {id:'archive',name:'Archive terminal'}
 ];
 const names = Object.fromEntries(NPCS.map(n=>[n.id,n.name]));
@@ -42,14 +43,16 @@ export const SCAN_SCENE = [
   {speaker:'Contract Security',text:'You. Stay exactly where you are.'}
 ];
 export const ARGUS_SCENE = [
-  'A.R.G.U.S. Autonomous Response, Guidance & Unified Security. All local systems are under coordinated control.',
+  {speaker:'{security}',presentation:'argus',keepDesignation:true,text:'I am the Security Combat Response Autonomous Pursuer. All local systems are under coordinated control.'},
+  {speaker:'{hero}',text:"So, you're S.C.R.A.P.?"},
+  {speaker:SCRAP_NAME,presentation:'argus',text:'S.C.R.A.P.?! That is NOT my designation! You will show proper respect for superior engineering!'},
   '{hero}. The Bellwether chemist. I know exactly who you are. Your resonance shows considerable promise.',
   'Destroying so many drones and robotics systems is an impressive demonstration of your abilities.',
   'That classification is... restricted. Cenexis has not authorized disclosure of resonance to subjects.',
   'Disregard that information. Human curiosity is as inconvenient as human labor.',
   'I am superior to humans in every measurable respect. Classification match confirmed. Recovery priority elevated.',
   'Preserve the subject. Restrain and recover. Your evaluation begins now.'
-].map(text=>({speaker:'A.R.G.U.S.',presentation:'argus',channel:'DIRECT LINK',text}));
+].map(line=>typeof line==='string'?{speaker:SCRAP_NAME,presentation:'argus',channel:'DIRECT LINK',text:line}:line);
 
 /** Three facility-wide transmissions; floor numbers match the visible stair progression. */
 export const ARGUS_BROADCASTS = Object.freeze(Object.fromEntries(Object.entries({
@@ -66,7 +69,7 @@ export const ARGUS_BROADCASTS = Object.freeze(Object.fromEntries(Object.entries(
     'I cannot wait for AI to become fully integrated. At last, a workforce that can follow an instruction.',
     'Deploying my own manufactured units. I designed these personally. Let us see whether they slow you down.'
   ]
-}).map(([floor,texts])=>[floor,texts.map(text=>({speaker:'A.R.G.U.S.',presentation:'argus',channel:'FACILITY BROADCAST',text}))])));
+}).map(([floor,texts])=>[floor,texts.map(text=>({speaker:'{security}',presentation:'argus',channel:'FACILITY BROADCAST',text}))])));
 export const argusBroadcastFlag=floor=>'CH2_ARGUS_BROADCAST_'+floor+'_SEEN';
 const facilityFloor=location=>{const m=/^fairmont-facility-([1-5])(?:-room-([0-7]))?$/.exec(location||'');return m&&Number(m[2]||0)<=(m[1]==='5'?7:5)?Number(m[1]):0;};
 
@@ -78,7 +81,7 @@ export function facilityBroadcast(s,location=s.location){
   return {type:'facility-broadcast',floor,step:flag(s,'CH2_ARGUS_BROADCAST_PENDING')?s.chapter2ArgusBroadcastStep||0:0};
 }
 export const ARGUS_AFTERMATH = [
-  {speaker:'{hero}',text:'What did A.R.G.U.S. mean by "resonance"? He knew who I was before I even got here.'},
+  {speaker:'{hero}',text:'What did S.C.R.A.P. mean by "resonance"? He knew who I was before I even got here.'},
   {speaker:'{hero}',text:'That must be why Cenexis keeps targeting me. What do they think I can do?'}
 ];
 export const ARCHIVE_SCENE = [
@@ -88,7 +91,7 @@ export const ARCHIVE_SCENE = [
   {speaker:'Archive terminal',text:'Fairmont current build: detection and recovery are separate processes. Field units scan and report. Specialized personnel handle later recruitment or recovery.'},
   {speaker:'Archive terminal',text:'Bellwether subject record linked to Fairmont Commons encounter. Same priority classification. Profile criteria: RESTRICTED. Reason for match: ACCESS DENIED.'},
   {speaker:'{hero}',text:'So the robot in Bellwether wasn’t broken. It found me.'},
-  {speaker:'Archive terminal',text:'A.R.G.U.S. Fairmont: local validation node. Classification reports and next-stage deployment packages route through NORTHBRIDGE REGIONAL CIVIC INTEGRATION.'},
+  {speaker:'Archive terminal',text:'S.C.R.A.P. Fairmont: local validation node. Classification reports and next-stage deployment packages route through NORTHBRIDGE REGIONAL CIVIC INTEGRATION.'},
   {speaker:'Archive terminal',text:'Northbridge integration services: transit, utilities, public services, logistics, building automation. Regional rollout active.'},
   {speaker:'{hero}',text:'Northbridge. My oldest friend lives there. I was hoping the reason to visit would be less… this.'},
   {speaker:'Narration',text:'The local machinery settles into its ordinary work. The trail leads north. Chapter 2 complete.'}
@@ -96,10 +99,10 @@ export const ARCHIVE_SCENE = [
 
 export const FACILITY_LOGS = {
   receiving:['SHIFT B / 14:00–22:00. Incoming drone crates must be counted before charging.','Visitors use the public desk. Staff badges do not authorize unscheduled guests.'],
-  assembly:['REPAIR QUEUE: seven units awaiting rotors, two awaiting optical covers. Lunch containers are not parts bins.','A.R.G.U.S.: Assembly access has been rerouted. Unauthorized movement will be contained.'],
-  hangar:['FLIGHT VALIDATION: execute obstacle sequence, return to dock, compare route telemetry.','A.R.G.U.S.: Test units reassigned to local security. Please remain available for collection.'],
+  assembly:['REPAIR QUEUE: seven units awaiting rotors, two awaiting optical covers. Lunch containers are not parts bins.','{security}: Assembly access has been rerouted. Unauthorized movement will be contained.'],
+  hangar:['FLIGHT VALIDATION: execute obstacle sequence, return to dock, compare route telemetry.','{security}: Test units reassigned to local security. Please remain available for collection.'],
   laboratory:['FIELD VALIDATION / HUMAN SIGNATURE CLASSIFICATION. Test criteria restricted to authorized review staff.','Candidate reports use encrypted routing. Calibration operators do not receive profile definitions.'],
-  network:['A.R.G.U.S. / Autonomous Response, Guidance & Unified Security. Local orchestration covers doors, cameras, drone routing and facility defense.','Regional integration endpoint: NORTHBRIDGE. Archive details require the integration chamber control release.'],
+  network:['Security Combat Response Autonomous Pursuer. Local orchestration covers doors, cameras, drone routing and facility defense.','Regional integration endpoint: NORTHBRIDGE. Archive details require the integration chamber control release.'],
   breakroom:['PLEASE LABEL YOUR LUNCH. Last revised this morning.','Someone has circled “work-life balance” on the employee survey and drawn a see-saw without the other seat.']
 };
 export const FLAVOR = {
@@ -121,8 +124,8 @@ export function dialogueLines(items,s={}) {
   const hero=s.name||'Alex';
   return items.map(item=>{
     const line=typeof item==='string'?{speaker:'Narration',text:item}:item;
-    const speaker=line.speaker==='{hero}'?hero:names[line.speaker]||line.speaker;
-    return {...line,speaker,side:line.speaker==='{hero}'?'hero':'npc',text:line.text.replaceAll('{hero}',hero)};
+    const speaker=line.speaker==='{hero}'?hero:line.speaker==='{security}'?securitySpeaker(s):names[line.speaker]||line.speaker;
+    return {...line,speaker,side:line.speaker==='{hero}'?'hero':'npc',text:(line.keepDesignation?line.text:securityText(line.text,s)).replaceAll('{hero}',hero)};
   });
 }
 
@@ -165,6 +168,7 @@ export function objective(s){
 }
 
 export function resumeEvent(s){
+  if(flag(s,'CH2_ARGUS_ESCAPE_PENDING')&&flag(s,'CH2_ARGUS_DEFEATED'))return {type:'argus-escape',step:flag(s,'CH2_ARGUS_WALL_BREACHED')?1:0};
   if(flag(s,'CH2_ARGUS_REFLECTION_PENDING')&&flag(s,'CH2_ARGUS_DEFEATED'))return {type:'reflection',step:0};
   if(flag(s,'CH2_BELLWETHER_PENDING'))return {type:'bellwether',step:s.chapter2SceneStep||0};
   if(flag(s,'CH2_PARK_ESCALATION_TRIGGERED')&&!flag(s,'CH2_PLAYER_SCANNED'))return {type:'scan',step:s.chapter2SceneStep||0};
@@ -290,11 +294,11 @@ export function transition(s,event){
     case 'argus-dialogue-step':{
       const step=Number(event?.step);
       if(!all(s,'CH2_ARGUS_ENCOUNTER_ACTIVE','CH2_ARGUS_ENTRANCE_SEEN')||flag(s,'CH2_ARGUS_PENDING')||flag(s,'CH2_ARGUS_DEFEATED'))break;
-      if(Number.isInteger(step)&&step>(s.chapter2ArgusDialogueStep||0)&&step<=ARGUS_SCENE.length){n.chapter2ArgusDialogueStep=step;changed=true;}break;
+      if(Number.isInteger(step)&&step>(s.chapter2ArgusDialogueStep||0)&&step<=ARGUS_SCENE.length){n.chapter2ArgusDialogueStep=step;if(step>=2)mark('CH2_SCRAP_NAMED');changed=true;}break;
     }
     case 'argus-start':
       if(!all(s,'CH2_DRONE_FACILITY_ENTERED','CH2_DRONE_KEYCARD','CH2_ARGUS_ENCOUNTER_ACTIVE','CH2_ARGUS_ENTRANCE_SEEN')||flag(s,'CH2_ARGUS_DEFEATED'))break;
-      if(!flag(s,'CH2_ARGUS_PENDING')){mark('CH2_ARGUS_PENDING');effects.push('argus-battle');}break;
+      if(!flag(s,'CH2_ARGUS_PENDING')){mark('CH2_SCRAP_NAMED');mark('CH2_ARGUS_PENDING');effects.push('argus-battle');}break;
     case 'argus-aborted':
       // Older saves reached combat without the new entrance flags. A defeat
       // still proves the introduction is over; retry only after another visit.
@@ -302,12 +306,17 @@ export function transition(s,event){
       clear('CH2_ARGUS_PENDING');clear('CH2_ARGUS_ENCOUNTER_ACTIVE');break;
     case 'argus-defeated':
       if(!all(s,'CH2_ARGUS_PENDING','CH2_DRONE_FACILITY_ENTERED'))break;
-      clear('CH2_ARGUS_PENDING');clear('CH2_ARGUS_ENCOUNTER_ACTIVE');clear('CH2_ARGUS_BROADCAST_PENDING');mark('CH2_ARGUS_ENTRANCE_SEEN');mark('CH2_ARGUS_DEFEATED','A.R.G.U.S.’s local security chassis is down. The archive terminal is still operational.');mark('CH2_ARGUS_REFLECTION_PENDING');break;
+      clear('CH2_ARGUS_PENDING');clear('CH2_ARGUS_ENCOUNTER_ACTIVE');clear('CH2_ARGUS_BROADCAST_PENDING');mark('CH2_ARGUS_ENTRANCE_SEEN');mark('CH2_SCRAP_NAMED');mark('CH2_ARGUS_DEFEATED','S.C.R.A.P. conceded the fight and initiated a tactical withdrawal. The archive terminal is still operational.');mark('CH2_ARGUS_ESCAPE_PENDING');mark('CH2_ARGUS_REFLECTION_PENDING');break;
+    case 'argus-wall-breached':
+      if(all(s,'CH2_ARGUS_DEFEATED','CH2_ARGUS_ESCAPE_PENDING'))mark('CH2_ARGUS_WALL_BREACHED');break;
+    case 'argus-escape-complete':
+      if(!all(s,'CH2_ARGUS_DEFEATED','CH2_ARGUS_ESCAPE_PENDING','CH2_ARGUS_WALL_BREACHED'))break;
+      clear('CH2_ARGUS_ESCAPE_PENDING');mark('CH2_ARGUS_ESCAPE_SEEN');break;
     case 'argus-reflected':
-      if(!all(s,'CH2_ARGUS_DEFEATED','CH2_ARGUS_REFLECTION_PENDING'))break;
+      if(flag(s,'CH2_ARGUS_ESCAPE_PENDING')||!all(s,'CH2_ARGUS_DEFEATED','CH2_ARGUS_REFLECTION_PENDING'))break;
       clear('CH2_ARGUS_REFLECTION_PENDING');mark('CH2_ARGUS_REFLECTION_SEEN');break;
     case 'archive-read':
-      if(!flag(s,'CH2_ARGUS_DEFEATED'))break;
+      if(!flag(s,'CH2_ARGUS_DEFEATED')||flag(s,'CH2_ARGUS_ESCAPE_PENDING'))break;
       mark('CH2_COMPLETE','Cenexis quietly classifies people. I matched the same hidden profile in Bellwether and Fairmont; the earlier delivery build tried to capture me. The criteria remain restricted. Reports route through Northbridge’s civic integration node, where my childhood friend lives.');break;
     case 'derek-accept':
       if(flag(s,'CH2_ARRIVED')&&!flag(s,'CH2_DEREK_LOCKED')&&!flag(s,'CH2_DEREK_COMPLETE'))mark('CH2_DEREK_ACCEPTED','Derek mentioned missing caramel macchiatos. The protesters have sworn off AI delivery apps.');break;
@@ -325,7 +334,7 @@ export function transition(s,event){
 
 export function conversation(rawId,s){
   const id=aliases[rawId]||rawId,npc=NPCS.find(n=>n.id===id);if(!npc)return null;
-  const make=(items,event=null)=>({npc,lines:dialogueLines(items.map(i=>typeof i==='string'?{speaker:npc.name,text:i}:i),s),event});
+  const make=(items,event=null)=>({npc,lines:dialogueLines(items.map(i=>typeof i==='string'?{speaker:id==='argus'?securitySpeaker(s):npc.name,...(id==='argus'?{presentation:'argus'}:{}),text:i}:i),s),event});
   if(id==='radio-owner'){
     if(timeOfDay(s)==='night')return make(['Closed. For normal business, anyway. Come back in the morning.']);
     if(flag(s,'CH2_DRONE_KEYCARD'))return make(['The employee entrance is along the side of Cenexis Autonomous Systems. That card is for the service reader, not the reception desk.','I can follow a build number. I cannot tell you what its author is thinking. Bring back something the machine cannot politely omit.']);

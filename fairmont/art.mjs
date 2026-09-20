@@ -1,3 +1,4 @@
+import {preloadScrapEscape} from './scrap-escape.mjs';
 // Original Fairmont assets. The raw atlases use a magenta matte, removed once at load.
 // World geometry belongs to the map; these helpers only draw individual objects.
 import {buildingType,buildingGeometry,rearServiceEntrance} from './building-geometry.mjs';
@@ -34,6 +35,7 @@ const PROP_WIDTH = {tree:250,tent:208,crates:134,bench:166,console:108,shelf:218
 const ALIASES = {crate:'crates',robot:'droneDock',drone:'droneDock',shelves:'shelf',terminal:'console',computer:'console',arm:'assemblyArm',lamp:'lamppost',counter:'desk',locker:'server',couch:'sofa',barrier:'fence'};
 
 export function preloadFairmontArt(scene){
+ preloadScrapEscape(scene);
  if(!scene.textures.exists('fairmont-karen-new'))scene.load.image('fairmont-karen-new',new URL('./assets/karen-remastered.png',import.meta.url).href);
  preloadInteriorArt(scene);
  loadArgusUnitSprites(scene);

@@ -1,3 +1,5 @@
+import {ScrapEscape,showScrapBreach} from './scrap-escape.mjs';
+import {securityName,securitySpeaker,securityText} from './security-identity.mjs';
 import {activateDoor,canInteractDoor} from '../city/doors.mjs';
 import {drawElectronicDoor} from './door-art.mjs';
 import {drawStreetDepth} from './street-depth.mjs';
@@ -50,7 +52,7 @@ export function createFairmontScene(api){
  const drawActor=(a,delta)=>a.argusUnit?drawArgusUnitActor(a,delta):a.fairmontCitizen?drawCitizenActor(a,delta):drawBaseActor(a,delta);
  return class FairmontScene extends Base {
   constructor(){super('Fairmont');}
-  init(data){super.init(data);const p=getProgress();this.location=canonicalLocation(data?.location||'fairmont');this.entry=migrateCompactCityLayout(p,this.location,data?.position||(p.location===this.location?p.position:ARRIVAL));this.map=mapFor(this.location);this.hotel=hotelMapFor(this.location);this.floor=null;this.obstacles=[];this.scanGraphic=null;this.visuals=[];this.cinematicStep=0;this.facilityBroadcast=null;this.facilityBroadcastOffset=0;}
+  init(data){super.init(data);const p=getProgress();this.location=canonicalLocation(data?.location||'fairmont');this.entry=migrateCompactCityLayout(p,this.location,data?.position||(p.location===this.location?p.position:ARRIVAL));this.map=mapFor(this.location);this.hotel=hotelMapFor(this.location);this.floor=null;this.obstacles=[];this.scanGraphic=null;this.visuals=[];this.cinematicStep=0;this.facilityBroadcast=null;this.facilityBroadcastOffset=0;this.scrapEscape=null;this.scrapBreach=null;}
   preload(){super.preload();preloadFairmontArt(this);loadCitizenSheets(this);}
   create(){
    const p=getProgress();state.scene=this;prepareArt(this);prepareWaterArt(this);prepareFairmontArt(this);prepareCitizenSheets(this);resetControls();screenMode('game');$('#loading').hidden=true;
@@ -229,6 +231,7 @@ export function createFairmontScene(api){
    if(m.elevator){this.drawRoomDoor({...m.elevator,label:'SERVICE ELEVATOR'});this.interactables.push({...m.elevator,kind:'room-door',id:'boss-elevator',name:p.flags.CH2_ARGUS_DEFEATED?'Take elevator to the entrance':'Check the locked elevator',range:180});}
    if(m.boss&&m.isMarket){this.prop('console',m.boss.x,m.boss.y,2.1);this.interactables.push({...m.boss,id:'breaker',kind:'breaker',name:'Examine the main breaker and primary lines',range:145});}
    if(m.boss&&!m.isMarket){this.prop('droneDock',m.boss.x-155,m.boss.y-90,1.5);this.prop('assemblyArm',m.boss.x+145,m.boss.y-90,1.6);this.prop('console',m.boss.x,m.boss.y,.85);this.interactables.push({...m.boss,id:'argus',kind:'argus',name:p.flags.CH2_ARGUS_DEFEATED?'Access the control archive':'Examine the integration terminal',range:150});}
+   if(m.boss&&!m.isMarket&&p.flags.CH2_ARGUS_WALL_BREACHED)showScrapBreach(this);
    if(m.isMarket&&p.flags.CH2_WRM_CLEARED){this.add.rectangle(0,0,m.width,m.height,0x101e39,.4).setOrigin(0).setDepth(10000);for(const r of m.floor)this.add.circle(r.x+80,r.y+20,90,0xf5593c,.2).setDepth(10001);this.label(m.width/2,100,'EMERGENCY POWER',20,'#ffb98a');}
    const collection=state.fairmontSlots||={};this.slots=collection[m.id]||(collection[m.id]=m.spawns.map(s=>({...s})));for(const s of this.slots)if(s.enemy)this.addPatrol(s);
   }
@@ -272,11 +275,11 @@ export function createFairmontScene(api){
    if(near.kind==='room-door'){
     if(near.facilityDoor&&!canInteractDoor(this.player,near))return;
     if(near.locked){this.say('Occupied. Your key is for room 204.');return;}
-    if(near.requiresFlag&&!p.flags[near.requiresFlag]){this.say(near.requiresFlag==='CH2_ARGUS_DEFEATED'?'A.R.G.U.S. has locked the exit controls. The service elevator beside the integration chamber will be available once its security control is defeated.':'The door is locked by a local safety interlock. Find this department’s control terminal.');return;}
+    if(near.requiresFlag&&!p.flags[near.requiresFlag]){this.say(near.requiresFlag==='CH2_ARGUS_DEFEATED'?securityName(p)+' has locked the exit controls. The service elevator beside the integration chamber will be available once its security control is defeated.':'The door is locked by a local safety interlock. Find this department’s control terminal.');return;}
     if(near.facilityDoor){activateDoor(this.player,near,{flags:p.flags,sound,travel:(target,position)=>this.travel(target,position)});return;}
     if(near.target)this.travel(near.target,near.position||mapFor(near.target)?.arrival||hotelMapFor(near.target)?.arrival||ARRIVAL);return;
    }
-   if(near.kind==='puzzle'){if(!p.flags[near.flag]){p.flags[near.flag]=true;p.notes.push(near.text);save();}const lines=[{speaker:'Control terminal',text:near.text}];if(!p.flags.CH2_ARGUS_DEFEATED&&!p.flags.CH2_ARGUS_TERMINAL_WARNING_SEEN){p.flags.CH2_ARGUS_TERMINAL_WARNING_SEEN=true;save();lines.push({speaker:'A.R.G.U.S.',presentation:'argus',channel:'FACILITY BROADCAST',text:'Work-cell routing updated. Unscheduled access noted.'});}this.showDialogue(story.dialogueLines(lines,p),this.player);return;}
+   if(near.kind==='puzzle'){if(!p.flags[near.flag]){p.flags[near.flag]=true;p.notes.push(near.text);save();}const lines=[{speaker:'Control terminal',text:near.text}];if(!p.flags.CH2_ARGUS_DEFEATED&&!p.flags.CH2_ARGUS_TERMINAL_WARNING_SEEN){p.flags.CH2_ARGUS_TERMINAL_WARNING_SEEN=true;save();lines.push({speaker:securitySpeaker(p),presentation:'argus',channel:'FACILITY BROADCAST',text:'Work-cell routing updated. Unscheduled access noted.'});}this.showDialogue(story.dialogueLines(lines,p),this.player);return;}
    if(near.kind==='supply'){if(p.flags[near.id]){this.say('The locker is empty.');return;}p.flags[near.id]=true;if(near.amount&&near.id.endsWith('-funds'))p.credits+=near.amount;else p.snacks++;save();this.say(near.id.endsWith('-funds')?'Recovered '+near.amount+' credits from a maintenance cash tin.':'One sealed pocket sandwich. Still within its date, somehow.');return;}
    if(near.kind==='rest'){restore(p);remember(this);this.say('Employee first aid restores your HP. Your progress is saved.');return;}
    if(near.kind==='log'){
@@ -286,7 +289,7 @@ export function createFairmontScene(api){
       ['Shift board: all demo returns must be charged before opening. Someone has circled “ALL” three times.'],
       ['Staff notice: premium-service escalators are not a substitute for walking the daily stock audit.']
     ][[1,5,7].indexOf(near.index)]:story.FACILITY_LOGS[near.index===5?'breakroom':department];
-    this.showDialogue((entries||[]).flat().map(text=>text.startsWith('A.R.G.U.S.: ')?{speaker:'A.R.G.U.S.',presentation:'argus',channel:'RECORDED SYSTEM LOG',side:'npc',text:text.slice(12)}:{speaker:m.isMarket?'Staff terminal':'Employee terminal',side:'npc',text}),this.player);return;
+    this.showDialogue((entries||[]).flat().map(text=>text.startsWith('{security}: ')?{speaker:securitySpeaker(p),presentation:'argus',channel:'RECORDED SYSTEM LOG',side:'npc',text:text.slice(12)}:{speaker:m.isMarket?'Staff terminal':'Employee terminal',side:'npc',text:securityText(text,p)}),this.player);return;
    }
    if(near.kind==='breaker'){if(p.flags.CH2_WRM_CLEARED){this.say('The primary lines are cut. Emergency systems remain on their own circuit.');return;}if(!p.flags.CH2_KAREN_DEFEATED){const plan=story.conversation('market-manager',p);this.showDialogue(plan.lines,this.player,()=>{const result=this.applyEvent('karen-start');if(result.effects.includes('karen-battle'))this.beginBattle('karen');});}else{this.say('You cut the primary control lines. Displays go dark across three floors. Emergency lamps blink awake.',this.player,()=>{const result=this.applyEvent('cut-lines');if(result.changed){sound.powerDown();this.travel(m.id,{x:m.boss.x-140,y:m.boss.y});}});}return;}
    if(near.kind==='argus'){if(p.flags.CH2_ARGUS_DEFEATED){const plan=story.conversation('archive',p);this.showDialogue(plan.lines,this.player,()=>{this.applyEvent('archive-read');if(getProgress().flags.CH2_COMPLETE)this.showChapterEnd();});}else if(!p.flags.CH2_CORE_SHUTTERS)this.say('Integration is sealed. Network control can release these shutters.');else this.runArgusEncounter();return;}
@@ -312,7 +315,7 @@ export function createFairmontScene(api){
     if(pending.type==='scan')this.runScan();else this.beginBattle('junctionGuard',null,['junctionGuard','scriptedScanDrone','scriptedScanDrone']);
    }
    else if(pending.type==='karen-battle'){const room=MARKET_FLOORS[2]+'-room-5';if(this.location!==room)this.travel(room,mapFor(room).arrival);else this.beginBattle('karen');}
-   else if(pending.type.startsWith('argus-')){const room=FACILITY_ZONES[4]+'-room-5';if(this.location!==room)this.travel(room,mapFor(room).arrival);else if(pending.type==='argus-battle')this.beginBattle('argus');else this.runArgusEncounter();}
+   else if(pending.type.startsWith('argus-')){const room=FACILITY_ZONES[4]+'-room-5';if(this.location!==room)this.travel(room,mapFor(room).arrival);else if(pending.type==='argus-battle')this.beginBattle('argus');else if(pending.type==='argus-escape')this.runScrapEscape(pending.step);else this.runArgusEncounter();}
   }
   runFacilityBroadcast(){
    if(this.facilityBroadcast||this.dialog||this.cutscene||this.transitioning)return;
@@ -332,6 +335,15 @@ export function createFairmontScene(api){
    };
    if(step>=lines.length){done();return;}
    this.showDialogue(lines.slice(step),this.player,done);
+  }
+  runScrapEscape(step=0){
+   if(this.scrapEscape||!getProgress().flags.CH2_ARGUS_ESCAPE_PENDING)return;
+   this.arrival=true;this.locked=true;this.player.walking=false;this.player.dir='up';drawActor(this.player,0);
+   this.input.keyboard.resetKeys();resetControls();$('#overlay').innerHTML='';$('#prompt').hidden=true;
+   this.scrapEscape=new ScrapEscape(this,{sound,onBreach:()=>this.applyEvent('argus-wall-breached'),onComplete:()=>{
+    this.scrapEscape=null;this.applyEvent('argus-escape-complete');this.arrival=false;this.locked=false;
+    sound.setMode(explorationMusicMode(this));this.input.keyboard.resetKeys();resetControls();this.resumeStory();
+   }});this.scrapEscape.start(step);
   }
   runArgusEncounter(){
    const p=getProgress();if(this.argusEntrance||this.argusDialogue||this.facilityBroadcast||this.transitioning||p.flags.CH2_ARGUS_DEFEATED)return;

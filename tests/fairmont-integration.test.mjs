@@ -69,7 +69,7 @@ test('real boss interactions require a separate breaker action and release the f
  Object.assign(facility.scene.player,doorApproach(room.elevator));facility.interact({kind:'room-door',...room.elevator});assert.equal(facility.events.some(e=>e.type==='travel'),false);
  facility.interact({kind:'argus'});assert.equal(facility.events.some(e=>e.type==='battle'),false);
  facility.progress.flags.CH2_CORE_SHUTTERS=true;facility.interact({kind:'argus'});assert.equal(facility.events.some(e=>e.type==='battle'),false);facility.finishEntrance();facility.finishDialogue();assert.equal(facility.events.findLast(e=>e.type==='battle').id,'argus');
- finishFairmontBattle(facility.progress,{id:'argus'});Object.assign(facility.scene.player,doorApproach(room.elevator));facility.interact({kind:'room-door',...room.elevator});assert.equal(facility.events.findLast(e=>e.type==='travel').location,FACILITY_ZONES[0]);
+ finishFairmontBattle(facility.progress,{id:'argus'});Object.assign(facility.progress,transition(transition(facility.progress,'argus-wall-breached').state,'argus-escape-complete').state);Object.assign(facility.scene.player,doorApproach(room.elevator));facility.interact({kind:'room-door',...room.elevator});assert.equal(facility.events.findLast(e=>e.type==='travel').location,FACILITY_ZONES[0]);
  facility.interact({kind:'argus'});assert.equal(facility.progress.flags.CH2_COMPLETE,true);assert.ok(facility.events.some(e=>e.type==='chapter-end'));
 });
 
@@ -87,7 +87,7 @@ test('the real final terminal locks controls, waits for the entrance, then retai
  assert.equal(h.progress.flags.CH2_ARGUS_ENTRANCE_SEEN,true);
  assert.equal(h.scene.arrival,false,'dialogue input unlocks after the flight');
  assert.equal(h.scene.locked,true,'movement remains locked for dialogue');
- assert.match(h.events.findLast(e=>e.type==='dialogue').lines[0].text,/Autonomous Response, Guidance & Unified Security/);
+ assert.match(h.events.findLast(e=>e.type==='dialogue').lines[0].text,/Security Combat Response Autonomous Pursuer/);
  assert.equal(h.events.some(e=>e.type==='battle'),false);
  h.scene.advanceDialogue();
  assert.equal(h.progress.chapter2ArgusDialogueStep,1,'the next dialogue line is persisted');
@@ -138,7 +138,7 @@ test('a scripted defeat can recover at the clinic and resumes only through the g
 test('Argus terminal warning happens once across computers and saved scenes while controls still unlock',()=>{
  const h=harness(through('facility-enter'));
  const first=mapFor(FACILITY_ZONES[0]+'-room-4').puzzle,second=mapFor(FACILITY_ZONES[1]+'-room-4').puzzle;
- h.interact({...first,kind:'puzzle'});assert.equal(h.events.findLast(e=>e.type==='dialogue').lines.filter(l=>l.speaker==='A.R.G.U.S.').length,1);
+ h.interact({...first,kind:'puzzle'});assert.equal(h.events.findLast(e=>e.type==='dialogue').lines.filter(l=>l.speaker==='[Classified]').length,1);
  assert.equal(h.progress.flags[first.flag],true);h.interact({...first,kind:'puzzle'});assert.equal(h.events.findLast(e=>e.type==='dialogue').lines.length,1);
  const loaded=harness(JSON.parse(JSON.stringify(h.progress)));loaded.interact({...second,kind:'puzzle'});
  assert.equal(loaded.events.findLast(e=>e.type==='dialogue').lines.length,1);assert.equal(loaded.progress.flags[second.flag],true);

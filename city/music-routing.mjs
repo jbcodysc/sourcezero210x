@@ -1,6 +1,6 @@
 // Shared by initial scene entry and browser back/forward-cache restoration.
 export function explorationMusicMode(scene){
- if(scene.argusEntrance||scene.argusDialogue)return 'argus-entrance';
+ if(scene.argusEntrance||scene.argusDialogue||scene.scrapEscape)return 'argus-entrance';
  if(scene.cutscene)return 'narration';
  if(scene.map)return scene.map.isMarket?'dungeon':'factory';
  if(scene.floor||scene.location==='water')return 'dungeon';

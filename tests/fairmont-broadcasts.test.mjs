@@ -90,7 +90,7 @@ test('scene locks movement, checkpoints dialogue, prevents duplicate starts and 
  const h=harness(ready(2));h.scene.resumeStory();
  assert.equal(h.scene.locked,true);assert.equal(h.scene.player.walking,false);assert.equal(h.scene.arrival,false);
  assert.equal(h.scene.facilityBroadcast,2);assert.equal(h.events.filter(e=>e==='dialogue').length,1);
- assert.equal(h.scene.dialog.messages[0].speaker,'A.R.G.U.S.');assert.equal(h.scene.dialog.messages[0].channel,'FACILITY BROADCAST');
+ assert.equal(h.scene.dialog.messages[0].speaker,'[Classified]');assert.equal(h.scene.dialog.messages[0].channel,'FACILITY BROADCAST');
  h.scene.resumeStory();assert.equal(h.events.filter(e=>e==='dialogue').length,1);
  h.scene.advanceDialogue();assert.equal(h.progress.chapter2ArgusBroadcastStep,1);
  const next=harness(reloaded(h.progress));next.scene.resumeStory();
@@ -120,6 +120,7 @@ test('physical boss entrance and pending combat take priority; victory reflects 
  lost.location='fairmont-facility-5';assert.equal(facilityBroadcast(lost),null,'a rematch does not run belated PA announcements');
  finishFairmontBattle(p,{id:'argus'});
  for(const floor of [2,3,5])assert.equal(facilityBroadcast(p,'fairmont-facility-'+floor),null);
+ assert.equal(resumeEvent(p).type,'argus-escape');p=apply(apply(p,'argus-wall-breached'),'argus-escape-complete');
  assert.equal(resumeEvent(p).type,'reflection');
  const aftermath=harness(p);aftermath.scene.resumeStory();assert.ok(aftermath.events.includes('dialogue'));
  const done=transition(p,'argus-reflected').state;assert.equal(resumeEvent(done),null);assert.equal(transition(done,'argus-reflected').changed,false);
@@ -133,7 +134,8 @@ test('A.R.G.U.S. recognizes the hero, slips classified resonance information, an
  assert.match(ARGUS_BROADCASTS[2].map(l=>l.text).join(' '),/not surprised/);
  assert.match(ARGUS_BROADCASTS[3].map(l=>l.text).join(' '),/handle you myself/);
  assert.match(ARGUS_BROADCASTS[5].map(l=>l.text).join(' '),/far too quickly.*laziness.*AI to become fully integrated.*manufactured units/);
- for(const line of [...direct,...Object.values(ARGUS_BROADCASTS).flat()]){
-  assert.equal(line.presentation,'argus');assert.equal(line.speaker,'A.R.G.U.S.');assert.ok(line.text.length<=140,line.text);
+ assert.equal(direct[0].speaker,'[Classified]');assert.equal(direct[1].speaker,'Morgan');assert.match(direct[1].text,/S\.C\.R\.A\.P\./);
+ for(const line of [...direct.filter(l=>l.side!=='hero'),...dialogueLines(Object.values(ARGUS_BROADCASTS).flat(),{})]){
+  assert.equal(line.presentation,'argus');assert.ok(['[Classified]','S.C.R.A.P.'].includes(line.speaker));assert.ok(line.text.length<=140,line.text);
  }
 });

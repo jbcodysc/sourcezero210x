@@ -1,10 +1,11 @@
+import {migrateSecurityIdentity} from '../fairmont/security-identity.mjs';
 import {SAVE_KEY,validProgress} from './progress.mjs';
 import {migrateOpening} from './opening.mjs';
 export const SLOTS_KEY='source-zero-bellwether-slots-v1';
 export class SaveSlots{
  constructor(storage){this.storage=storage;this.available=!!storage;this.slots=[null,null,null];this.imported=false;
-  try{const raw=storage?.getItem(SLOTS_KEY);if(raw){const book=JSON.parse(raw);if(book?.version===1&&Array.isArray(book.slots))this.slots=this.slots.map((_,i)=>validProgress(book.slots[i])?migrateOpening(book.slots[i]):null);}
-   else{const legacy=JSON.parse(storage?.getItem(SAVE_KEY)||'null');if(validProgress(legacy)){this.slots[0]=migrateOpening(legacy);this.imported=true;this.flush();}}
+  try{const raw=storage?.getItem(SLOTS_KEY);if(raw){const book=JSON.parse(raw);if(book?.version===1&&Array.isArray(book.slots))this.slots=this.slots.map((_,i)=>validProgress(book.slots[i])?migrateSecurityIdentity(migrateOpening(book.slots[i])):null);}
+   else{const legacy=JSON.parse(storage?.getItem(SAVE_KEY)||'null');if(validProgress(legacy)){this.slots[0]=migrateSecurityIdentity(migrateOpening(legacy));this.imported=true;this.flush();}}
   }catch{this.available=false;}
  }
  read(index){return this.slots[index]?JSON.parse(JSON.stringify(this.slots[index])):null;}

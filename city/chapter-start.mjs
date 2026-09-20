@@ -5,7 +5,7 @@ import {transition} from '../fairmont/story.mjs';
 export const CHAPTERS=Object.freeze([
  {id:1,title:'Bellwether',description:'The first morning in the lab. Level 1.'},
  {id:2,title:'Fairmont Junction',description:'Arrive by bus. Level 15, Chapter 1 equipment, 2,000 credits and two sandwiches.'},
- {id:'2-facility',badge:'02',title:'Chapter 2 — Drone Facility',description:'Post-scan checkpoint. Level 20, available equipment and facility keycard. A.R.G.U.S. undefeated.'}
+ {id:'2-facility',badge:'02',title:'Chapter 2 — Drone Facility',description:'Post-scan checkpoint. Level 20, available equipment and facility keycard. Security Combat Response Autonomous Pursuer undefeated.'}
 ]);
 
 /** A chapter start is a new adventure in one selected file, never a mutation of another save. */

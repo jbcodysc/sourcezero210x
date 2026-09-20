@@ -1,3 +1,4 @@
+import {applyEnemyImpact,finishEnemyAnimation} from '../city/encounters.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -140,8 +141,10 @@ function simulate(id,level,snacks,seed,group=null) {
   while(!['victory','defeat'].includes(battle.phase)&&rounds++<180) {
     const action=playerAction(battle,chooseAction(battle),random);
     assert.ok(action.ok,'simulation chose an unavailable action');
+    if(battle.phase==='bossRetreat')battle.phase='victory';
     while(battle.phase==='resolving') {
-      enemyAction(battle,random);
+      const result=enemyAction(battle,random);
+      if(result.impact){for(let i=0;i<(result.impact.hits?.length||1);i++)applyEnemyImpact(battle,result.impact,i);finishEnemyAnimation(battle,result.impact);}
       // Settle all incoming damage before the next choice; this deliberately
       // avoids depending on fast input rescuing the rolling health counter.
       battle.hp=battle.targetHp;

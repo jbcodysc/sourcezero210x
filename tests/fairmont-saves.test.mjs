@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {freshProgress} from '../city/progress.mjs';
 import {SaveSlots} from '../city/save-slots.mjs';
 import {transition,resumeEvent,timeOfDay} from '../fairmont/story.mjs';
-const order=['arrive','module-reminder','radio-bargain','hotel-sleep','bellwether-finished','wrm-enter','karen-start','karen-defeated','cut-lines','hotel-sleep','decrypt-start','guard-heard','protester-finished','scan-finished','security-defeated','keycard','facility-enter','argus-entrance-start',{type:'argus-entrance-step',step:1},{type:'argus-entrance-step',step:2},'argus-entrance-complete',{type:'argus-dialogue-step',step:2},'argus-start','argus-defeated','archive-read'];
+const order=['arrive','module-reminder','radio-bargain','hotel-sleep','bellwether-finished','wrm-enter','karen-start','karen-defeated','cut-lines','hotel-sleep','decrypt-start','guard-heard','protester-finished','scan-finished','security-defeated','keycard','facility-enter','argus-entrance-start',{type:'argus-entrance-step',step:1},{type:'argus-entrance-step',step:2},'argus-entrance-complete',{type:'argus-dialogue-step',step:2},'argus-start','argus-defeated','argus-wall-breached','argus-escape-complete','argus-reflected','archive-read'];
 test('real three-slot storage preserves every Chapter 2 transition through Chapter 1 migration',()=>{
  const memory=new Map(),storage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)},book=new SaveSlots(storage);
  let s=freshProgress('Morgan');Object.assign(s,{opening:'complete',level:10,xp:2025,maxHp:218,hp:218,location:'city'});Object.assign(s.flags,{waterRestored:true,badgeFixed:true,relayTaken:true,factoryDone:true,courierDone:true,policeReported:true});

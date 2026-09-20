@@ -16,7 +16,7 @@ export class ArgusEntrance {
   this.shadow=s.add.ellipse(this.target.x,this.target.y+1,162,29,0x071320,.3).setDepth(this.target.y-1);
   const sprite=s.add.image(x,y,'fairmont-argus','portrait').setOrigin(.5,1).setDepth(this.target.y+1);
   sprite.setScale(245/sprite.width);
-  this.actor={x:this.target.x,y:this.target.y,name:'A.R.G.U.S.',row:3,dir:'down',sprite};
+  this.actor={x:this.target.x,y:this.target.y,name:'[Classified]',row:3,dir:'down',sprite};
  }
  start(step=0){
   if(this.started||this.disposed)return;this.started=true;

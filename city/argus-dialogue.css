@@ -9,3 +9,6 @@
 #overlay .dialog-argus button:hover{color:white;background:#163239}
 #overlay .dialog-argus button span{font:inherit;font-size:1.3em;margin-left:8px;color:#61edff}
 @container(max-width:430px){#overlay .dialog-box.dialog-argus{aspect-ratio:4.4}#overlay .dialog-argus .typed-copy{font-size:clamp(10px,2.6cqw,11px);line-height:1.2}#overlay .dialog-argus .dialog-speaker{font-size:clamp(10px,2.6cqw,12px)}}
+
+.battle-boss-speaking .battle-topline,.battle-boss-speaking .battle-log{visibility:hidden}
+.battle-boss-speaking .dialog-argus{z-index:30}

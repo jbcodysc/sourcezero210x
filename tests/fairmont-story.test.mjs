@@ -17,7 +17,7 @@ const sequence=[
   'arrive','module-reminder','radio-bargain','hotel-sleep','bellwether-finished','wrm-enter',
   'karen-start','karen-defeated','cut-lines','hotel-sleep','decrypt-start','guard-heard',
   'protester-finished','scan-finished','security-defeated','keycard','facility-enter',
-  'argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated','argus-reflected','archive-read'
+  'argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated','argus-wall-breached','argus-escape-complete','argus-reflected','archive-read'
 ];
 // The existing network console sets its puzzle flag outside the story reducer.
 function storyStep(s,event){if(event==='argus-entrance-start')s={...s,flags:{...s.flags,CH2_CORE_SHUTTERS:true}};return transition(s,event);}
@@ -86,7 +86,7 @@ test('arrival requires the completed water route, retained storage module, and r
 
 test('main beats cannot be skipped from the arrival state',()=>{
   const s=until('arrive');
-  for(const event of ['radio-bargain','bellwether-finished','wrm-enter','karen-start','karen-defeated','cut-lines','decrypt-start','guard-heard','protester-finished','scan-finished','security-defeated','keycard','facility-enter','argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated','argus-reflected','archive-read']){
+  for(const event of ['radio-bargain','bellwether-finished','wrm-enter','karen-start','karen-defeated','cut-lines','decrypt-start','guard-heard','protester-finished','scan-finished','security-defeated','keycard','facility-enter','argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated','argus-wall-breached','argus-escape-complete','argus-reflected','archive-read']){
     assert.equal(transition(s,event).changed,false,event);
   }
 });
@@ -243,7 +243,7 @@ test('ARGUS gates archive reveal; interrupted fight resumes and defeated boss do
   s=run(['argus-entrance-start','argus-entrance-complete'],s);
   s=finishConversation(s,intro).state;assert.deepEqual(resumeEvent(reload(s)),{type:'argus-battle',step:0});
   s=transition(s,'argus-defeated').state;assert.equal(s.flags.CH2_COMPLETE,undefined);
-  assert.equal(transition(s,'argus-start').changed,false);assert.equal(resumeEvent(reload(s)).type,'reflection');s=transition(s,'argus-reflected').state;assert.equal(resumeEvent(s),null);
+  assert.equal(transition(s,'argus-start').changed,false);assert.equal(resumeEvent(reload(s)).type,'argus-escape');s=run(['argus-wall-breached','argus-escape-complete'],s);assert.equal(resumeEvent(s).type,'reflection');s=transition(s,'argus-reflected').state;assert.equal(resumeEvent(s),null);
   assert.equal(conversation('argus',s).event,null);assert.equal(conversation('archive',s).event,'archive-read');
   s=finishConversation(s,conversation('archive',s)).state;
   assert.equal(s.flags.CH2_COMPLETE,true);assert.equal(transition(s,'archive-read').changed,false);
@@ -292,7 +292,7 @@ test('A.R.G.U.S. defeat recovery allows clinic rest and retry dialogue without r
   assert.deepEqual(retry.effects,['argus-dialogue']);assert.deepEqual(resumeEvent(s),{type:'argus-dialogue',step:0});
   assert.equal(transition(s,'argus-entrance-complete').changed,false);
   s=transition(s,'argus-start').state;s=transition(s,'argus-defeated').state;
-  assert.equal(resumeEvent(reload(s)).type,'reflection');s=transition(s,'argus-reflected').state;assert.equal(resumeEvent(reload(s)),null);
+  assert.equal(resumeEvent(reload(s)).type,'argus-escape');s=run(['argus-wall-breached','argus-escape-complete'],s);assert.equal(resumeEvent(s).type,'reflection');s=transition(s,'argus-reflected').state;assert.equal(resumeEvent(reload(s)),null);
   for(const event of ['argus-entrance-start','argus-entrance-complete','argus-start','argus-defeated'])assert.equal(transition(s,event).changed,false,event);
   assert.equal(conversation('archive',s).event,'archive-read');
 });
@@ -301,7 +301,7 @@ test('legacy pending A.R.G.U.S. saves resume the fight and still recover safely 
   const legacy=until('facility-enter');legacy.flags.CH2_ARGUS_PENDING=true;
   assert.deepEqual(resumeEvent(reload(legacy)),{type:'argus-battle',step:0});
   const won=transition(legacy,'argus-defeated').state;
-  assert.equal(won.flags.CH2_ARGUS_DEFEATED,true);assert.equal(resumeEvent(won).type,'reflection');
+  assert.equal(won.flags.CH2_ARGUS_DEFEATED,true);assert.equal(resumeEvent(won).type,'argus-escape');
   assert.equal(conversation('archive',won).event,'archive-read');
   const lost=transition(legacy,'argus-aborted').state;
   assert.equal(resumeEvent(lost),null);assert.equal(lost.flags.CH2_ARGUS_DEFEATED,undefined);assert.equal(lost.flags.CH2_ARGUS_ENTRANCE_SEEN,true);

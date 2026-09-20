@@ -1,3 +1,4 @@
+import {securityText} from '../fairmont/security-identity.mjs';
 import {rollHealth} from '../lab/battle-rules.mjs';
 import {CONSUMABLES,playerStats} from './progress.mjs';
 import {FAIRMONT_ENEMIES} from '../fairmont/enemies.mjs';
@@ -24,12 +25,12 @@ const antics={
  robot:['plays its own startup jingle. Nobody applauds.','installs a confidence update. Restart postponed.','announces a coffee break. It cannot drink coffee.','runs a victory simulation. The results are inconclusive.','asks you to rate this encounter before it is over.','spends a moment arguing with its own diagnostic report.']
 };
 function makeFoe(id,uid){const stats=ENEMIES[id]||ENEMIES.volunteer;return {uid,id,stats,hp:stats.hp,maxHp:stats.hp,charged:false,turn:1};}
-export const livingEnemies=b=>b.enemies.filter(e=>e.hp>0);
+export const livingEnemies=b=>b.enemies.filter(e=>e.hp>0&&!e.retreating);
 export function targetEnemy(b){return b.enemies.find(e=>e.uid===b.targetUid&&e.hp>0)||livingEnemies(b)[0]||b.enemies.at(-1);}
 export function selectTarget(b,uid){if(b.phase!=='command'||!b.enemies.some(e=>e.uid===uid&&e.hp>0))return false;b.targetUid=uid;return true;}
-export function encounterRewards(b){return b.enemies.filter(e=>e.hp<=0).reduce((r,e)=>({xp:r.xp+e.stats.xp,credits:r.credits+e.stats.credits}),{xp:0,credits:0});}
+export function encounterRewards(b){return b.enemies.filter(e=>e.hp<=0||e.retreating).reduce((r,e)=>({xp:r.xp+e.stats.xp,credits:r.credits+e.stats.credits}),{xp:0,credits:0});}
 export function createEncounter(id,progress,group=null){
- const foe=makeFoe(id,0),enemy=foe.stats,b={phase:'command',turn:1,hp:progress.hp,targetHp:progress.hp,maxHp:progress.maxHp,snacks:progress.snacks,inventory:[...(progress.inventory||[])],guarding:false,lastAction:null,enemies:[foe],enemyQueue:[],targetUid:0,nextUid:1,enemy,id,heroAttack:playerStats(progress).attack,defense:playerStats(progress).defense,speed:playerStats(progress).speed,message:enemy.opening.replace('subject: Alex.','subject: '+(progress.name||'Alex')+'.')};
+ const foe=makeFoe(id,0);if(id==='argusSentinel')foe.stats={...foe.stats,name:securityText(foe.stats.name,progress)};const enemy=foe.stats,b={phase:'command',turn:1,hp:progress.hp,targetHp:progress.hp,maxHp:progress.maxHp,snacks:progress.snacks,inventory:[...(progress.inventory||[])],guarding:false,lastAction:null,enemies:[foe],enemyQueue:[],targetUid:0,nextUid:1,enemy,id,heroAttack:playerStats(progress).attack,defense:playerStats(progress).defense,speed:playerStats(progress).speed,message:securityText(enemy.opening,progress).replace('subject: Alex.','subject: '+(progress.name||'Alex')+'.')};
  if(group?.length){b.enemies=group.slice(0,MAX_ACTIVE_ENEMIES).map((kind,i)=>makeFoe(kind,i));b.nextUid=b.enemies.length;b.enemy=b.enemies[0].stats;}
  // The selected foe retains the existing HUD/test-facing health interface.
  for(const [key,field]of [['enemyHp','hp'],['enemyMaxHp','maxHp'],['charged','charged']])Object.defineProperty(b,key,{get:()=>targetEnemy(b)[field],set:v=>{targetEnemy(b)[field]=v;}});
@@ -51,14 +52,14 @@ export function playerAction(b,action,rng=Math.random,{queued=false}={}){
  if(action==='attack'){
   miss=rng()<MISS_RATE;
   if(miss)b.message='Your vibrosword cuts empty air. Miss!';
-  else{damage=b.heroAttack+(foe.charged?4:0);foe.hp=Math.max(0,foe.hp-damage);b.message='Your vibrosword strikes '+foe.stats.name+'. '+damage+' damage!';if(!foe.hp)b.message+=' '+(foe.stats.kind==='human'?'They retreat.':'It shuts down.');}
+  else{damage=b.heroAttack+(foe.charged?4:0);foe.hp=Math.max(0,foe.hp-damage);if(foe.stats.retreatAtOne&&foe.hp===0){foe.hp=1;foe.retreating=true;foe.charged=false;}b.message='Your vibrosword strikes '+foe.stats.name+'. '+damage+' damage!';if(!foe.hp)b.message+=' '+(foe.stats.kind==='human'?'They retreat.':'It shuts down.');}
  }
  if(action==='guard')b.message='You brace behind the vibrosword. Incoming damage will be reduced.';
  const itemId=actionItem(action),item=CONSUMABLES[itemId];
  if(item){recovered=Math.min(item.heal,b.maxHp-b.targetHp);if(itemId==='sandwich')b.snacks--;else b.inventory.splice(b.inventory.indexOf(itemId),1);b.targetHp=Math.min(b.maxHp,b.targetHp+item.heal);b.message='You use '+item.name.toLowerCase()+'. '+recovered+' HP recovered.';}
  const actionMessage=b.message;
  const survivors=livingEnemies(b);if(!queued)b.enemyQueue=survivors.map(e=>e.uid);
- if(!survivors.length){b.phase='victory';b.targetHp=b.hp;b.message=b.id==='regulator'?'The Cenexis override breaks. The regulator reboots into municipal control.':b.enemy.kind==='human'?'They drop their guard and flee.':b.enemy.kind==='animal'?'The rats scatter into the pipes.':'The machines fall silent.';}
+ if(!survivors.length){b.phase=foe.retreating?'bossRetreat':'victory';b.roundQueue=[];b.targetHp=b.hp;b.message=b.id==='regulator'?'The Cenexis override breaks. The regulator reboots into municipal control.':b.enemy.kind==='human'?'They drop their guard and flee.':b.enemy.kind==='animal'?'The rats scatter into the pipes.':'The machines fall silent.';}
  else if(foe.hp<=0)b.targetUid=survivors[0].uid;
  return {ok:true,damage,miss,recovered,itemId,itemName:item?.name,actionMessage,targetUid:foe.uid};
 }
@@ -66,6 +67,16 @@ export function enemyAction(b,rng=Math.random,{queued=false}={}){
  if(b.phase!=='resolving')return {ok:false};
  let foe;while(b.enemyQueue.length&&!foe){const uid=b.enemyQueue.shift();foe=b.enemies.find(e=>e.uid===uid&&e.hp>0);}
  if(!foe){if(!queued){b.phase='command';b.guarding=false;}return {ok:false};}
+ if(foe.stats.missileVolleyPower&&!foe.missileVolleyUsed&&foe.hp<=foe.maxHp*.2){
+  foe.missileVolleyUsed=true;foe.charged=false;foe.turn++;
+  const miss=rng()<MISS_RATE;let damage=Math.max(4,foe.stats.missileVolleyPower-b.defense);
+  if(b.guarding)damage=Math.ceil(damage*.3);
+  damage=miss?0:Math.round(damage*ENEMY_DAMAGE_MULTIPLIER);
+  const hits=[Math.floor(damage/3),Math.floor(damage/3),damage-2*Math.floor(damage/3)];
+  const impact={type:'missile-volley',enemyUid:foe.uid,damage,hits,hitApplied:[false,false,false],miss,applied:false,queued};
+  b.pendingEnemyImpact=impact;b.phase='enemyAnimation';b.message='';
+  return {ok:true,type:'missile-volley',enemyUid:foe.uid,damage:0,impact};
+ }
  // Threshold is private combat state; no health-trigger narration. A charged
  // attack keeps its promised next turn, with the wave waiting until afterward.
  if(foe.stats.tidalWavePower&&!foe.charged&&!foe.tidalWaveUsed&&foe.hp<=foe.maxHp*.2){
@@ -95,9 +106,12 @@ export function enemyAction(b,rng=Math.random,{queued=false}={}){
 }
 
 // Animation callbacks commit an enemy hit exactly once, only in its live battle.
-export function applyEnemyImpact(b,impact){
+export function applyEnemyImpact(b,impact,index=0){
  if(b.phase!=='enemyAnimation'||b.pendingEnemyImpact!==impact||impact.applied)return false;
- impact.applied=true;b.targetHp=Math.max(0,b.targetHp-impact.damage);
+ if(impact.hits){
+  if(!Number.isInteger(index)||index<0||index>=impact.hits.length||impact.hitApplied[index])return false;
+  impact.hitApplied[index]=true;impact.applied=impact.hitApplied.every(Boolean);b.targetHp=Math.max(0,b.targetHp-impact.hits[index]);
+ }else{impact.applied=true;b.targetHp=Math.max(0,b.targetHp-impact.damage);}
  b.message=impact.miss?'Miss!':impact.damage+' damage.';return true;
 }
 export function finishEnemyAnimation(b,impact){

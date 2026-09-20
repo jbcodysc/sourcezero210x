@@ -4,7 +4,7 @@ import {EventEmitter} from 'node:events';
 import {freshProgress,award,xpThreshold} from '../city/progress.mjs';
 import {createEncounter,enemyAction,applyEnemyImpact,finishEnemyAnimation,rollHealth,ENEMIES} from '../city/encounters.mjs';
 import {beginRound,nextTurn} from '../city/battle-turns.mjs';
-import {TidalWaveEffect,registerScreenAttacks,TIDAL_WAVE} from '../city/screen-attacks.mjs';
+import {TidalWaveEffect,MissileVolleyEffect,registerScreenAttacks,TIDAL_WAVE} from '../city/screen-attacks.mjs';
 
 function boss(){const p=freshProgress();award(p,xpThreshold(10),0);p.armor='insulated-vest';p.hp=p.maxHp;return createEncounter('regulator',p);}
 function enemy(b){b.phase='resolving';b.enemyQueue=[0];return enemyAction(b,()=>.99,{queued:true});}
@@ -69,4 +69,18 @@ test('scene shutdown cancels damage and completion; repeated battles leave no ef
 test('animation registration is shared, uses all 20 frames at 18 FPS and never loops',()=>{
  let definition,created=0;const scene={textures:{get:()=>({setFilter:n=>assert.equal(n,0)})},anims:{exists:()=>!!definition,generateFrameNumbers:(key,range)=>{assert.equal(key,TIDAL_WAVE.key);assert.deepEqual(range,{start:0,end:19});return Array.from({length:20},(_,i)=>i);},create:d=>{created++;definition=d;}}};
  registerScreenAttacks(scene);registerScreenAttacks(scene);assert.equal(created,1);assert.equal(definition.frameRate,18);assert.equal(definition.repeat,0);assert.equal(definition.frames.length,20);
+});
+
+test('missile impacts and launch sounds follow frames once, including skipped frames, and shutdown cancels remaining hits',()=>{
+ const h=harness(),hits=[];let complete=0;
+ const effect=new MissileVolleyEffect(h.scene,{host:h.host,sound:h.sound,onImpact:i=>hits.push(i),onComplete:()=>complete++});
+ effect.showFrame(22);assert.deepEqual(hits,[]);
+ effect.showFrame(23);effect.showFrame(23);assert.deepEqual(hits,[0]);
+ effect.showFrame(31);assert.deepEqual(hits,[0,1,2]);
+ assert.equal(h.calls.filter(c=>Array.isArray(c)&&c[0]==='shake').length,3);
+ assert.equal(h.calls.filter(c=>Array.isArray(c)&&c[0]==='sound'&&c[1]==='missile-launch').length,4);
+ assert.equal(h.calls.filter(c=>Array.isArray(c)&&c[0]==='sound'&&c[1]==='missile-explosion').length,3);
+ effect.complete();effect.complete();assert.equal(complete,1);assert.equal(h.host.children.length,0);assert.equal(h.scene.events.listenerCount('shutdown'),0);
+ const aborted=new MissileVolleyEffect(h.scene,{host:h.host,sound:h.sound,onImpact:i=>hits.push(i),onComplete:()=>complete++});
+ h.scene.events.emit('shutdown');aborted.showFrame(35);aborted.complete();assert.deepEqual(hits,[0,1,2]);assert.equal(complete,1);assert.equal(h.host.children.length,0);
 });

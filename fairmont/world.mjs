@@ -107,11 +107,11 @@ const puzzleSpecs=[
  {id:'assembly-belt',name:'Reverse the service conveyor',flag:'CH2_CONVEYOR_REVERSED',text:'The belt reverses. A service lane opens behind the repair cages.',type:'console'},
  {id:'flight-test',name:'Redirect the validation flight',flag:'CH2_TEST_REDIRECTED',text:'Test drones return to their charging docks. The hangar safety interlock releases.',type:'console'},
  {id:'sensor-route',name:'Route the calibration sequence',flag:'CH2_SENSOR_ROUTED',text:'The test sequence moves to the empty calibration booth. Network access is released.',type:'console'},
- {id:'core-shutters',name:'Open integration shutters',flag:'CH2_CORE_SHUTTERS',text:'Integration hangar unlocked. A.R.G.U.S. transfers control to a dedicated security chassis.',type:'console'},
+ {id:'core-shutters',name:'Open integration shutters',flag:'CH2_CORE_SHUTTERS',text:'Integration hangar unlocked. Security Combat Response Autonomous Pursuer transfers control to a dedicated security chassis.',type:'console'},
 ];
 const roomNames={
  market:[['Service foyer','Consumer demonstration hall','Shipping stockroom','Returned units','Security office','Upper stairwell'],['Parts foyer','Industrial repair room','Parts reserve','Calibration room','Supervisor office','Upper stairwell'],['Executive foyer','Premium demonstration room','Emergency supplies','Security storage','Operations office','Primary control room']],
- facility:[['Receiving foyer','Freight inspection','Supplies cage','Unscheduled intake','Loading control','Assembly access'],['Assembly foyer','Automated welding','Spare components','Repair isolation','Conveyor control','Validation access'],['Hangar foyer','Live flight validation','Staff recovery','Drone storage','Test routing','Sensor access'],['Validation foyer','Sensor test chamber','Calibration supplies','Software isolation','Sequence control','Core access'],['Core foyer','Network assembly','Integration supplies','Security holding','Shutter control','A.R.G.U.S. integration chamber','Sentinel assembly and staging','Sentinel diagnostics and validation']],
+ facility:[['Receiving foyer','Freight inspection','Supplies cage','Unscheduled intake','Loading control','Assembly access'],['Assembly foyer','Automated welding','Spare components','Repair isolation','Conveyor control','Validation access'],['Hangar foyer','Live flight validation','Staff recovery','Drone storage','Test routing','Sensor access'],['Validation foyer','Sensor test chamber','Calibration supplies','Software isolation','Sequence control','Core access'],['Core foyer','Network assembly','Integration supplies','Security holding','Shutter control','Security integration chamber','Sentinel assembly and staging','Sentinel diagnostics and validation']],
 };
 const mapCache=new Map();
 export function mapFor(requestedId){
@@ -127,7 +127,7 @@ export function mapFor(requestedId){
  if(roomIndex===0){
   link('east',1,'Enter '+names[1]);
   if(index>0)doors.push(roomDoor(id+'-previous','south',dungeonRoomId(bases[index-1],5),'Stairs to the previous '+(isMarket?'floor':'zone'),{visual:'stairs',position:{...entryFor.south}}));
-  else {const b=BUILDINGS.find(b=>b.id===(isMarket?'market':'facility'));doors.push(roomDoor(id+'-street','south','fairmont','Exit through the service entrance',{position:rearServiceEntrance(b),...(!isMarket?{requiresFlag:'CH2_ARGUS_DEFEATED',lockedText:'The entry lockdown is controlled by A.R.G.U.S. The integration core must release it.'}:{})}));}
+  else {const b=BUILDINGS.find(b=>b.id===(isMarket?'market':'facility'));doors.push(roomDoor(id+'-street','south','fairmont','Exit through the service entrance',{position:rearServiceEntrance(b),...(!isMarket?{requiresFlag:'CH2_ARGUS_DEFEATED',lockedText:'The entry lockdown is controlled by Security Combat Response Autonomous Pursuer. The integration core must release it.'}:{})}));}
  }
  if(roomIndex===1){link('west',0,'Return to the foyer');link('north',2,'Enter '+names[2]);link('east',3,'Enter '+names[3]);}
  if(roomIndex===2){link('south',1,'Return to '+names[1]);link('east',4,'Enter '+names[4]);}
@@ -148,7 +148,7 @@ export function mapFor(requestedId){
  // Whole Robotics previously had eleven slots. Eight additional independent rolls
  // give nineteen (round(11 * 1.75)); the facility and safe supply rooms stay unchanged.
  if(isMarket&&([1,3].includes(roomIndex)||(roomIndex===4&&index<2)))spawns.push({id:id+'-second-patrol',x:550,y:785,w:100,h:100,armed:true,enemy:null,chance:.72});
- const elevator=!isMarket&&lastFloor&&roomIndex===5?{id:'argus-return-elevator',facilityDoor:true,side:'east',range:180,targetFacing:'up',x:1405,y:790,target:FACILITY_ZONES[0],position:{...entryFor.south},name:'Return elevator · receiving',requiresFlag:'CH2_ARGUS_DEFEATED',lockedText:'The lift is held by the integration lockdown. It will activate when A.R.G.U.S. is defeated.',visual:'elevator'}:null;
+ const elevator=!isMarket&&lastFloor&&roomIndex===5?{id:'argus-return-elevator',facilityDoor:true,side:'east',range:180,targetFacing:'up',x:1405,y:790,target:FACILITY_ZONES[0],position:{...entryFor.south},name:'Return elevator · receiving',requiresFlag:'CH2_ARGUS_DEFEATED',lockedText:'The lift is held by the integration lockdown. It will activate when Security Combat Response Autonomous Pursuer is defeated.',visual:'elevator'}:null;
  const room={id:roomIndex,...INDOOR_FLOOR,title:names[roomIndex]};
  const map={id,baseId,index,isMarket,roomIndex,roomKind:roomIndex===0?'foyer':roomIndex===2?'supplies':boss?'boss':'workroom',...INDOOR_SIZE,title,rooms:[room],corridors:[],floor:[INDOOR_FLOOR],props,arrival:{...entryFor.west},doors,up:null,down:null,point:()=>({x:775,y:720}),puzzle,supply,spawns,boss,rest,logs,elevator};
  if(roomIndex===0)map.arrival={...entryFor.south};

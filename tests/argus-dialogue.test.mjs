@@ -14,10 +14,10 @@ test('Argus panel uses the supplied local artwork and keeps authored text out of
  assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
  assert.equal(bytes.readUInt32BE(16),1448);assert.equal(bytes.readUInt32BE(20),1086);
  const text='Morgan <img src=x onerror="attack()"> has RESONANCE & GREAT PROMISE.';
- const html=argusPanelMarkup({speaker:'A.R.G.U.S.',text});
+ const html=argusPanelMarkup({speaker:'S.C.R.A.P.',text});
  assert.ok(html.includes('href="'+escape(ARGUS_PANEL_IMAGE)+'"'));
- assert.ok(html.includes('aria-label="A.R.G.U.S. transmission"'));
- assert.ok(html.includes('class="dialog-speaker">A.R.G.U.S.</span>'));
+ assert.ok(html.includes('aria-label="Security transmission"'));
+ assert.ok(html.includes('class="dialog-speaker">S.C.R.A.P.</span>'));
  assert.ok(html.includes('<span class="sr-only">'+escape(text)+'</span>'));
  assert.ok(!html.includes('<img'),'dialogue is never interpreted as user-controlled HTML');
  assert.ok(html.includes('data-action="dialogue-next"'),'the established continue action remains available');
@@ -60,7 +60,7 @@ function dialogueHarness(){
 test('Argus is fixed at the top while mixed hero and NPC replies keep their regular boxes and voices',()=>{
  const h=dialogueHarness(),argus={x:800,y:440,name:'A.R.G.U.S.',row:7};let completed=0;
  h.scene.showDialogue([
-  {speaker:'A.R.G.U.S.',text:'Your resonance is classified.'},
+  {speaker:'S.C.R.A.P.',text:'Your resonance is classified.'},
   {speaker:'Alex',text:'My what?'},
   {speaker:'Mira',speakerId:'mira',text:'I heard that.'}
  ],argus,()=>completed++);
