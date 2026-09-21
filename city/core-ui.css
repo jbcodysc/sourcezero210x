@@ -13,3 +13,7 @@
 #overlay .dialog-box.dialog-bellwether .dialog-speaker{font-weight:800;font-size:1.25em;color:#ffe5a0}.dialog-box:not(.dialog-argus)>button[data-action=dialogue-next]{position:absolute;right:15px;bottom:10px;border:0;background:none;color:#a9dfdf;padding:0;font-size:17px}.dialog-box:not(.dialog-argus) p{margin:4px 24px 4px 0}.bellwether-title{position:absolute;inset:0;display:grid;place-items:center;background:#000;color:#f1eee1;letter-spacing:4px;font:clamp(18px,2.4cqw,34px) 'Space Mono',monospace;z-index:100}
 
 .core-inventory{height:100%;display:flex;flex-direction:column;gap:16px}.core-categories{display:flex;gap:12px;flex-shrink:0}.core-inventory .core-items{flex:1;min-height:0;height:auto}.core-item-list button{position:relative;padding-right:48px}.core-equipped{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:1.9em;font-weight:900;color:#ffe19a;line-height:1}.core-item-list button[aria-pressed=true] .core-equipped{color:#17313e}
+/* Compact stat columns fit each member's card without clipping Speed. */
+.core-status-grid .core-character dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.core-status-grid .core-character dl>div{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.core-status-grid .core-character dt{font-size:.85em}

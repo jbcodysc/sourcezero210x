@@ -74,7 +74,7 @@ test('Chapter 2 completes with Derek entirely absent; version and Chapter 1 hist
   assert.equal(s.flags.CH2_DEREK_ACCEPTED,undefined);assert.equal(s.flags.CH2_DEREK_COMPLETE,undefined);
   assert.ok(s.inventory.includes(FACILITY_KEYCARD));
   assert.deepEqual(s.party,before.party);assert.deepEqual(s.visited,before.visited);
-  assert.match(objective(s),/Northbridge/);
+  assert.match(objective(s),/Solace/);
 });
 
 test('arrival requires the completed water route, retained storage module, and repaired Chapter 1 badge',()=>{
@@ -317,7 +317,7 @@ test('player-facing text withholds forbidden explanations; scans disclose no cla
   }
   assert.doesNotMatch(JSON.stringify(visible),/\bmagic\b|biological resonance|resonance-capable|cyborg|magically/i);
   assert.doesNotMatch(JSON.stringify(SCAN_SCENE),/positive|candidate|classification|resonance/i);
-  assert.match(JSON.stringify(ARCHIVE_SCENE),/Northbridge/i);
+  assert.match(JSON.stringify(ARCHIVE_SCENE),/Solace/i);
   assert.match(JSON.stringify(ARCHIVE_SCENE),/transit, utilities, public services, logistics, building automation/);
 });
 

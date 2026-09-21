@@ -120,3 +120,30 @@ body[data-screen=start] #touch-controls,body[data-screen=cinematic] #touch-contr
 .battle-effect-active .battle-log{visibility:hidden}
 
 .trade-choices{display:flex;gap:14px}.trade-choices>button{flex:1}.trade-inventory{max-height:44vh;overflow-y:auto}.trade-menu .core-equipped{display:inline-block;font-size:1.6em;font-weight:900;margin-right:12px;color:#ffe3a0}.trade-shade{position:absolute;inset:0;display:grid;place-items:center;background:#07111bb8;z-index:70;pointer-events:auto}.trade-dialog{width:min(520px,80%);padding:28px;background:#142c35;border:3px solid #91b9b0;box-shadow:0 15px 60px #000b;color:#f5edd7;font:18px/1.6 "Space Mono",monospace}.trade-dialog p{margin:0 0 22px}.trade-dialog button{padding:10px 22px;border:2px solid #779e91;background:#264b50;color:#f5edd7;font:inherit}.trade-dialog button:focus{outline:3px solid #ffdb8b;outline-offset:3px}
+/* Party combat keeps each member visible while commands share the existing panel. */
+.battle-party .battle-party-vitals{position:absolute;left:4%;right:42%;bottom:calc(4% + 111px);display:flex;gap:12px}
+.battle-party .battle-party-vitals .hero-vitals{position:static;width:auto;flex:1;min-width:0;padding:8px 10px}
+.battle-party .hero-vitals.member-selected{border-color:#ffe69d;box-shadow:0 0 0 3px #685d37}
+.battle-party .hero-vitals.member-down{opacity:.55}
+.battle-party .vital-title{display:flex;align-items:flex-start;flex-direction:column;gap:4px}
+.battle-party .vital-title>b{max-width:100%;font-size:12px}
+.battle-party .vital-title>small{font-size:9px}
+.battle-party .hp-number>strong{font-size:27px}
+.battle-party .battle-panel-head{display:flex;margin-bottom:5px;padding:3px 6px;background:#122d3cf5}
+.battle-party .battle-panel-head small{font-size:10px}
+.battle-party .enemy-status{left:62%;width:32%}
+.battle-heal-targets{display:flex;gap:8px;padding-bottom:6px}
+.battle-heal-targets button{background:#173848;color:#e0e9d4;border:1px solid #8caaa0;font-size:12px}
+.battle-heal-targets button[aria-pressed="true"]{border-color:#ffe69d;background:#47524a}
+.core-heal-targets{position:absolute;left:25%;right:25%;top:35%;padding:24px;background:#142c3d;border:2px solid #b2d2be;box-shadow:0 0 0 100vmax #071018d9;pointer-events:auto;z-index:20}
+.core-heal-targets button{display:block;width:100%;margin:8px 0}
+.core-equipment{font-size:13px;line-height:1.7;color:#bbcabd}
+/* Two active companions stack in the existing left HUD lane, clear of enemy art. */
+.battle-party .battle-party-vitals{right:65%;flex-direction:column;gap:8px}
+.battle-party .battle-party-vitals .hero-vitals{flex:none;padding:6px 10px}
+.battle-party .vital-title{flex-direction:row;align-items:baseline;padding-bottom:4px;gap:5px}
+.battle-party .vital-title>b{font-size:10px;letter-spacing:1px;max-width:57%}
+.battle-party .vital-title>small{font-size:8px;white-space:nowrap}
+.battle-party .hp-number{padding-top:3px}
+.battle-party .hp-number>strong{font-size:24px}
+.battle-party .enemy-status{left:47%;width:37%}

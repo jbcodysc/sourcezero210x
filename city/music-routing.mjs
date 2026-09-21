@@ -2,6 +2,7 @@
 export function explorationMusicMode(scene){
  if(scene.argusEntrance||scene.argusDialogue||scene.scrapEscape)return 'argus-entrance';
  if(scene.cutscene)return 'narration';
+ if(scene.location?.startsWith('solace-'))return scene.map?.dungeon&&scene.progressFlags?.CH3_LOCKDOWN?'dungeon':'solace';
  if(scene.map)return scene.map.isMarket?'dungeon':'factory';
  if(scene.floor||scene.location==='water')return 'dungeon';
  if(scene.location==='fairmont')return 'fairmont-city';

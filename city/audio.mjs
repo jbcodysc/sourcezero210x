@@ -10,6 +10,7 @@ export class CityAudio {
   this.town=new BattleMusic(new URL('./assets/music-remastered/town.ogg',import.meta.url).href,{...options,resumeOnStart:true});
   this.fairmontTown=new BattleMusic(new URL('./assets/music-remastered/fairmont-interior.ogg',import.meta.url).href,{...options,resumeOnStart:true});
   this.fairmontCity=new BattleMusic(new URL('./assets/music-remastered/fairmont-city.ogg',import.meta.url).href,{...options,resumeOnStart:true});
+  this.solace=new BattleMusic(new URL('./assets/ch3_solace_theme.ogg',import.meta.url).href,{...options,resumeOnStart:true});
   this.battle=new BattleMusic(new URL('./assets/music-remastered/battle.ogg',import.meta.url).href,options);
   // Distance-controlled ambience must begin silently. Starting at the music
   // player's normal gain caused a full-volume transient before the first ramp.
@@ -20,7 +21,7 @@ export class CityAudio {
   this.argus=new BattleMusic(new URL('./assets/ch2_argus_battle_theme.wav',import.meta.url).href,options);
   this.waterDistance=Infinity;
  }
- get tracks(){return [this.town,this.fairmontTown,this.fairmontCity,this.battle,this.water,this.menu,this.dungeon,this.factory,this.argus];}
+ get tracks(){return [this.solace,this.town,this.fairmontTown,this.fairmontCity,this.battle,this.water,this.menu,this.dungeon,this.factory,this.argus];}
  get failed(){return this.tracks.some(t=>t.failed)||this.effectFailed;}
  getContext(){if(!this.context||this.context.state==='closed')this.context=new (globalThis.AudioContext||globalThis.webkitAudioContext)();return this.context;}
  unlock(retry=false){
@@ -34,7 +35,7 @@ export class CityAudio {
   this.mode=mode;
   // Stop all nonselected sources before starting the new one. In particular,
   // the entrance has no music and the boss never shares a source with its factory.
-  const selected=mode==='fairmont-city'||mode==='fairmont-industrial'?this.fairmontCity:mode==='fairmont-interior'?this.fairmontTown:mode==='dungeon'?this.dungeon:mode==='factory'?this.factory:mode==='argus-battle'?this.argus:mode==='battle'?this.battle:mode==='menu'?this.menu:mode==='city'||mode==='interior'?this.town:null;
+  const selected=mode==='solace'?this.solace:mode==='fairmont-city'||mode==='fairmont-industrial'?this.fairmontCity:mode==='fairmont-interior'?this.fairmontTown:mode==='dungeon'?this.dungeon:mode==='factory'?this.factory:mode==='argus-battle'?this.argus:mode==='battle'?this.battle:mode==='menu'?this.menu:mode==='city'||mode==='interior'?this.town:null;
   for(const track of this.tracks)if(track!==selected&&(track!==this.water||!['city','fairmont-city'].includes(mode)))track.stop();
   selected?.start();if(selected===this.menu&&this.menu.gain)this.menu.gain.gain.value=.5;
   if(!['argus-battle','argus-entrance'].includes(mode))for(const key of ['missile-launch','missile-explosion','wall-breach'])this.stopEffects(key);

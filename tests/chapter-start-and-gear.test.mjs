@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {CHAPTERS,createChapterProgress} from '../city/chapter-start.mjs';
 import {freshProgress,GEAR,buy,buyGear,equipArmor,armorDefense,weaponBonus,playerStats,xpThreshold,validProgress,restore} from '../city/progress.mjs';
 import {carryBattleInventory} from '../city/battle-turns.mjs';
+import {restoreParty} from '../city/party.mjs';
 import {SaveSlots} from '../city/save-slots.mjs';
 import {resumeEvent,timeOfDay,transition} from '../fairmont/story.mjs';
 import {createEncounter,ENEMIES} from '../city/encounters.mjs';
@@ -87,7 +88,7 @@ test('the actual battle return sends every Fairmont defeat to the clinic while k
   const progress=createChapterProgress(2,'Kim');progress.hp=1;progress.flags.CH2_RADIO_HUT_BARGAIN=true;
   const before=progress.inventory.slice(),state={origin:{scene:'Fairmont'},encounter:{id,region:'fairmont-facility5',checkpoint:{location:'fairmont-facility5',position:{x:100,y:100}}}};
   let destination,saved=false,aborted=false;
-  const Battle=actualSceneClass('BattleScene','if(!P)',{state,progress,restore,carryBattleInventory,abortFairmontBattle(){aborted=true;},save(){saved=true;}});
+  const Battle=actualSceneClass('BattleScene','if(!P)',{state,progress,restore,restoreParty,carryBattleInventory,abortFairmontBattle(){aborted=true;},save(){saved=true;}});
   const scene=new Battle();scene.closed=false;scene.battle={phase:'defeat',snacks:1,inventory:[...progress.inventory]};scene.scene={start:(name,data)=>{destination={name,...data};}};
   scene.handleAction('return');assert.equal(destination.name,'Fairmont');assert.equal(destination.location,'fairmont-clinic');assert.equal(progress.location,'fairmont-clinic');
   assert.equal(progress.hp,progress.maxHp);assert.equal(progress.snacks,1);assert.deepEqual(progress.inventory,before);assert.equal(progress.flags.CH2_RADIO_HUT_BARGAIN,true);

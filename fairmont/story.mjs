@@ -91,9 +91,9 @@ export const ARCHIVE_SCENE = [
   {speaker:'Archive terminal',text:'Fairmont current build: detection and recovery are separate processes. Field units scan and report. Specialized personnel handle later recruitment or recovery.'},
   {speaker:'Archive terminal',text:'Bellwether subject record linked to Fairmont Commons encounter. Same priority classification. Profile criteria: RESTRICTED. Reason for match: ACCESS DENIED.'},
   {speaker:'{hero}',text:'So the robot in Bellwether wasn’t broken. It found me.'},
-  {speaker:'Archive terminal',text:'S.C.R.A.P. Fairmont: local validation node. Classification reports and next-stage deployment packages route through NORTHBRIDGE REGIONAL CIVIC INTEGRATION.'},
-  {speaker:'Archive terminal',text:'Northbridge integration services: transit, utilities, public services, logistics, building automation. Regional rollout active.'},
-  {speaker:'{hero}',text:'Northbridge. My oldest friend lives there. I was hoping the reason to visit would be less… this.'},
+  {speaker:'Archive terminal',text:'S.C.R.A.P. Fairmont: local validation node. Classification reports and next-stage deployment packages route through SOLACE REGIONAL CIVIC INTEGRATION.'},
+  {speaker:'Archive terminal',text:'Solace integration services: transit, utilities, public services, logistics, building automation. Regional rollout active.'},
+  {speaker:'{hero}',text:'Solace. My oldest friend lives there. I was hoping the reason to visit would be less… this.'},
   {speaker:'Narration',text:'The local machinery settles into its ordinary work. The trail leads north. Chapter 2 complete.'}
 ];
 
@@ -102,7 +102,7 @@ export const FACILITY_LOGS = {
   assembly:['REPAIR QUEUE: seven units awaiting rotors, two awaiting optical covers. Lunch containers are not parts bins.','{security}: Assembly access has been rerouted. Unauthorized movement will be contained.'],
   hangar:['FLIGHT VALIDATION: execute obstacle sequence, return to dock, compare route telemetry.','{security}: Test units reassigned to local security. Please remain available for collection.'],
   laboratory:['FIELD VALIDATION / HUMAN SIGNATURE CLASSIFICATION. Test criteria restricted to authorized review staff.','Candidate reports use encrypted routing. Calibration operators do not receive profile definitions.'],
-  network:['Security Combat Response Autonomous Pursuer. Local orchestration covers doors, cameras, drone routing and facility defense.','Regional integration endpoint: NORTHBRIDGE. Archive details require the integration chamber control release.'],
+  network:['Security Combat Response Autonomous Pursuer. Local orchestration covers doors, cameras, drone routing and facility defense.','Regional integration endpoint: SOLACE. Archive details require the integration chamber control release.'],
   breakroom:['PLEASE LABEL YOUR LUNCH. Last revised this morning.','Someone has circled “work-life balance” on the employee survey and drawn a see-saw without the other seat.']
 };
 export const FLAVOR = {
@@ -151,7 +151,7 @@ export function canEnter(s,location){
   return true;
 }
 export function objective(s){
-  if(flag(s,'CH2_COMPLETE'))return 'The records point to Northbridge. This chapter is complete.';
+  if(flag(s,'CH2_COMPLETE'))return 'Return to the Fairmont bus station. The records point to Solace, where Lou lives.';
   if(flag(s,'CH2_ARGUS_DEFEATED'))return 'Read the archive terminal behind the integration chamber.';
   if(flag(s,'CH2_DRONE_FACILITY_ENTERED'))return 'Follow the deployment trail through the active Cenexis facility.';
   if(flag(s,'CH2_DRONE_KEYCARD'))return 'Use Harlan’s keycard at the facility service entrance.';
@@ -317,7 +317,7 @@ export function transition(s,event){
       clear('CH2_ARGUS_REFLECTION_PENDING');mark('CH2_ARGUS_REFLECTION_SEEN');break;
     case 'archive-read':
       if(!flag(s,'CH2_ARGUS_DEFEATED')||flag(s,'CH2_ARGUS_ESCAPE_PENDING'))break;
-      mark('CH2_COMPLETE','Cenexis quietly classifies people. I matched the same hidden profile in Bellwether and Fairmont; the earlier delivery build tried to capture me. The criteria remain restricted. Reports route through Northbridge’s civic integration node, where my childhood friend lives.');break;
+      mark('CH2_COMPLETE','Cenexis quietly classifies people. I matched the same hidden profile in Bellwether and Fairmont; the earlier delivery build tried to capture me. The criteria remain restricted. Reports route through Solace’s civic integration node, where my childhood friend lives.');break;
     case 'derek-accept':
       if(flag(s,'CH2_ARRIVED')&&!flag(s,'CH2_DEREK_LOCKED')&&!flag(s,'CH2_DEREK_COMPLETE'))mark('CH2_DEREK_ACCEPTED','Derek mentioned missing caramel macchiatos. The protesters have sworn off AI delivery apps.');break;
     case 'buy-coffee':
